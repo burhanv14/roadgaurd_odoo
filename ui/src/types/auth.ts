@@ -86,6 +86,7 @@ export interface AuthActions {
   login: (credentials: LoginRequest) => Promise<void>;
   signup: (data: SignupRequest) => Promise<void>;
   logout: () => void;
+  clearLocalAuth: () => void;
   deleteAccount: (data?: DeleteAccountRequest) => Promise<void>;
   clearError: () => void;
   setLoading: (loading: boolean) => void;

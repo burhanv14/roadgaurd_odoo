@@ -109,12 +109,17 @@ export const useAuthStore = create<AuthStore>()(
           // Continue with local cleanup even if backend fails
         } finally {
           // Clear local state and storage
-          set({
-            ...initialState,
-          });
-          TokenManager.clearTokens();
-          AuthStorage.clearAll();
+          get().clearLocalAuth();
         }
+      },
+
+      // Clear local authentication state without calling the backend
+      clearLocalAuth: () => {
+        set({
+          ...initialState,
+        });
+        TokenManager.clearTokens();
+        AuthStorage.clearAll();
       },
 
       deleteAccount: async (data?: DeleteAccountRequest) => {
@@ -153,7 +158,7 @@ export const useAuthStore = create<AuthStore>()(
       checkAuthStatus: () => {
         try {
           const token = TokenManager.getToken();
-          const userData = AuthStorage.getUserData();
+          const userData = AuthStorage.getUserData() as User | null;
 
           if (token && !TokenManager.isTokenExpired(token)) {
             // Token is valid
@@ -164,12 +169,12 @@ export const useAuthStore = create<AuthStore>()(
               error: null,
             });
           } else {
-            // No valid token, ensure clean state
-            get().logout();
+            // No valid token, clear local state without server call
+            get().clearLocalAuth();
           }
         } catch (error) {
           console.error("Error checking auth status:", error);
-          get().logout();
+          get().clearLocalAuth();
         }
       },
 
