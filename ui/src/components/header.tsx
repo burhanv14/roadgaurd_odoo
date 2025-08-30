@@ -2,8 +2,10 @@ import { useEffect, useState, useCallback } from "react";
 import { clsx, type ClassValue } from "clsx";
 import { ChevronDown, Sun, Moon, Phone} from "lucide-react";
 import ReactCountryFlag from "react-country-flag";
+import { useNavigate } from "react-router-dom";
 import { Trans } from '@/components/Trans';
 import { useTheme } from '@/hooks/useTheme';
+import { useAuth } from '@/hooks/useAuth';
 import { useLanguageStore } from '@/stores';
 import type { ScrollState, HeaderProps } from "../types/header";
 import { NAV_LINKS, LANGUAGES } from "@/constants";
@@ -18,6 +20,10 @@ export function RAHeader({ className, fixed = true }: HeaderProps) {
   // Use the language store for managing language state
   const { currentLanguage, setLanguage } = useLanguageStore();
   
+  // Authentication and navigation
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  
   // Assume these hooks are available
   const { theme, toggleTheme } = useTheme();
   
@@ -28,6 +34,29 @@ export function RAHeader({ className, fixed = true }: HeaderProps) {
     lastScrollY: 0,
     scrollDirection: 'none',
   });
+
+  // Navigation handlers
+  const handleGetHelpClick = useCallback(() => {
+    navigate('/signup');
+  }, [navigate]);
+
+  const handleRoadsideAssistanceClick = useCallback(() => {
+    if (isAuthenticated) {
+      // If authenticated, go to dashboard or roadside assistance page
+      navigate('/dashboard');
+    } else {
+      // If not authenticated, go to signup
+      navigate('/signup');
+    }
+  }, [isAuthenticated, navigate]);
+
+  const handleNavLinkClick = useCallback((href: string, label: string) => {
+    if (label === "Roadside Assistance") {
+      handleRoadsideAssistanceClick();
+    } else {
+      navigate(href);
+    }
+  }, [handleRoadsideAssistanceClick, navigate]);
 
   // Enhanced scroll detection with improved performance and animations
   const handleScroll = useCallback(() => {
@@ -227,9 +256,9 @@ export function RAHeader({ className, fixed = true }: HeaderProps) {
         {/* Enhanced Desktop Navigation with better spacing */}
         <nav className="hidden lg:flex items-center gap-8 xl:gap-12" aria-label="Main">
           {NAV_LINKS.map((link) => (
-            <a
+            <button
               key={link.label}
-              href={link.href}
+              onClick={() => handleNavLinkClick(link.href, link.label)}
               className={cn(
                 "relative font-medium transition-all duration-300 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400",
                 "after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-blue-600 dark:after:bg-blue-400",
@@ -240,7 +269,7 @@ export function RAHeader({ className, fixed = true }: HeaderProps) {
               )}
             >
               {link.label}
-            </a>
+            </button>
           ))}
         </nav>
 
@@ -349,6 +378,7 @@ export function RAHeader({ className, fixed = true }: HeaderProps) {
           
           {/* Modern Primary CTA Button */}
           <button
+            onClick={handleGetHelpClick}
             className={cn(
               "group relative overflow-hidden font-semibold rounded-2xl transition-all duration-300",
               "bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-600 hover:from-blue-700 hover:via-blue-700 hover:to-indigo-700",
@@ -365,6 +395,7 @@ export function RAHeader({ className, fixed = true }: HeaderProps) {
               "before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent",
               "before:translate-x-[-100%] before:transition-transform before:duration-700",
               "hover:before:translate-x-[100%]"
+
             )}
           >
             <span className="relative z-10 flex items-center gap-2">
@@ -438,19 +469,21 @@ export function RAHeader({ className, fixed = true }: HeaderProps) {
         >
           {/* Mobile Navigation Links */}
           {NAV_LINKS.map((link) => (
-            <a
+            <button
               key={link.label}
-              href={link.href}
+              onClick={() => {
+                handleNavLinkClick(link.href, link.label);
+                setOpen(false);
+              }}
               className={cn(
-                "rounded-2xl px-4 py-3 text-base font-medium text-gray-900 dark:text-white",
+                "rounded-2xl px-4 py-3 text-base font-medium text-gray-900 dark:text-white w-full text-left",
                 "transition-all duration-300 hover:bg-gray-100/60 dark:hover:bg-gray-800/60 active:bg-gray-200/60 dark:active:bg-gray-700/60",
                 "border border-transparent hover:border-gray-200/50 dark:hover:border-gray-700/50",
                 "hover:scale-95 hover:shadow-sm"
               )}
-              onClick={() => setOpen(false)}
             >
               {link.label}
-            </a>
+            </button>
           ))}
           
           {/* Mobile Controls */}
@@ -553,7 +586,10 @@ export function RAHeader({ className, fixed = true }: HeaderProps) {
                   "before:translate-x-[-100%] before:transition-transform before:duration-700",
                   "hover:before:translate-x-[100%]"
                 )}
-                onClick={() => setOpen(false)}
+                onClick={() => {
+                  handleGetHelpClick();
+                  setOpen(false);
+                }}
               >
                 <span className="relative z-10 flex items-center justify-center gap-2">
                   <Trans translationKey="header.getHelpNow" text="Get Help Now" />
