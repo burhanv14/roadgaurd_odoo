@@ -2,6 +2,7 @@ import { lazy } from "react";
 import { createBrowserRouter, Outlet } from "react-router-dom";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { PublicRoute } from "@/components/auth/PublicRoute";
+import Layout from "@/routes/layout";
 
 // Lazy load pages for better performance
 const LoginPage = lazy(() => import("@/pages/auth/LoginPage"));
@@ -13,7 +14,11 @@ const NotFoundPage = lazy(() => import("@/pages/NotFoundPage"));
 export const router = createBrowserRouter([
   {
     path: "/",
-    element: <Outlet />,
+    element: (
+      <Layout>
+        <Outlet />
+      </Layout>
+    ),
     children: [
       {
         index: true,
