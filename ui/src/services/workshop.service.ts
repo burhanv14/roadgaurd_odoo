@@ -39,13 +39,22 @@ export interface WorkshopFilters {
 export interface WorkshopResponse {
   success: boolean;
   message: string;
-  data: Workshop[];
-  pagination?: {
-    totalCount: number;
-    totalPages: number;
-    currentPage: number;
-    hasNextPage: boolean;
-    hasPreviousPage: boolean;
+  data: {
+    workshops: Workshop[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalCount: number;
+      limit: number;
+      hasNextPage: boolean;
+      hasPreviousPage: boolean;
+    };
+    filters: {
+      status?: string;
+      search?: string;
+      radius?: number | null;
+      location?: { latitude: number; longitude: number } | null;
+    };
   };
 }
 
@@ -59,7 +68,7 @@ export interface CreateWorkshopRequest {
   status?: 'OPEN' | 'CLOSED';
 }
 
-export interface WorkshopService {
+export interface WorkshopServiceInterface {
   id: string;
   name: string;
   description: string;
@@ -84,7 +93,7 @@ export interface WorkshopReview {
 }
 
 export interface WorkshopDetails extends Workshop {
-  services?: WorkshopService[];
+  services?: WorkshopServiceInterface[];
   reviews?: WorkshopReview[];
   averageRating?: number;
 }
@@ -222,7 +231,7 @@ export class WorkshopService {
   /**
    * Get services for a workshop
    */
-  async getWorkshopServices(id: string): Promise<{ success: boolean; message: string; data: WorkshopService[] }> {
+  async getWorkshopServices(id: string): Promise<{ success: boolean; message: string; data: WorkshopServiceInterface[] }> {
     const axiosInstance = this.createAxiosInstance();
     
     const response = await axiosInstance.get(`/workshops/${id}/services`);
@@ -232,7 +241,7 @@ export class WorkshopService {
   /**
    * Add a service to a workshop (requires authentication)
    */
-  async addWorkshopService(id: string, serviceData: CreateServiceRequest): Promise<{ success: boolean; message: string; data: WorkshopService }> {
+  async addWorkshopService(id: string, serviceData: CreateServiceRequest): Promise<{ success: boolean; message: string; data: WorkshopServiceInterface }> {
     const axiosInstance = this.createAxiosInstance();
     
     const response = await axiosInstance.post(`/workshops/${id}/services`, serviceData);

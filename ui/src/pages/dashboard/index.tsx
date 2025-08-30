@@ -168,7 +168,7 @@ export default function DashboardPage() {
                     <li className="px-4 py-4 sm:px-6">
                       <div className="flex items-center justify-between">
                         <div className="text-sm font-medium text-indigo-600 truncate">
-                          <Trans translationKey="dashboard.activity.newProject" text={`New project created: \"E-commerce Website\"`} />
+                          <Trans translationKey="dashboard.activity.newProject" text={`New project created: E-commerce Website`} />
                         </div>
                         <div className="ml-2 flex-shrink-0 text-sm text-gray-500">
                           <Trans translationKey="dashboard.activity.2hoursAgo" text="2 hours ago" />
@@ -178,7 +178,7 @@ export default function DashboardPage() {
                     <li className="px-4 py-4 sm:px-6">
                       <div className="flex items-center justify-between">
                         <div className="text-sm font-medium text-indigo-600 truncate">
-                          <Trans translationKey="dashboard.activity.taskCompleted" text={`Task completed: \"Design homepage mockup\"`} />
+                          <Trans translationKey="dashboard.activity.taskCompleted" text={`Task completed: Design homepage mockup`} />
                         </div>
                         <div className="ml-2 flex-shrink-0 text-sm text-gray-500">
                           <Trans translationKey="dashboard.activity.4hoursAgo" text="4 hours ago" />
@@ -188,7 +188,7 @@ export default function DashboardPage() {
                     <li className="px-4 py-4 sm:px-6">
                       <div className="flex items-center justify-between">
                         <div className="text-sm font-medium text-indigo-600 truncate">
-                          <Trans translationKey="dashboard.activity.teamMemberAdded" text={`Team member added: \"Sarah Johnson\"`} />
+                          <Trans translationKey="dashboard.activity.teamMemberAdded" text={`Team member added: Sarah Johnson`} />
                         </div>
                         <div className="ml-2 flex-shrink-0 text-sm text-gray-500">
                           <Trans translationKey="dashboard.activity.1dayAgo" text="1 day ago" />

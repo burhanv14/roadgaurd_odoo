@@ -4,3 +4,5 @@ export * from './useTranslation';
 export * from './useTheme';
 export * from './useLocation';
 export * from './useHeaderVisibility';
+export * from './useWorkshops';
+export * from './useWorkshopDetails';

@@ -116,11 +116,20 @@ Workshop.init({
     }
   },
   image_url: {
-    type: DataTypes.STRING,
+    type: DataTypes.TEXT,  // Changed from STRING to TEXT to allow longer URLs
     allowNull: true,
     validate: {
-      isUrl: {
-        msg: 'Image URL must be a valid URL'
+      isValidImageUrl(value: string | null) {
+        if (value !== null && value !== undefined && value !== '') {
+          try {
+            const url = new URL(value);
+            if (!['http:', 'https:'].includes(url.protocol)) {
+              throw new Error('Image URL must use HTTP or HTTPS protocol');
+            }
+          } catch (error) {
+            throw new Error('Image URL must be a valid URL');
+          }
+        }
       }
     }
   },

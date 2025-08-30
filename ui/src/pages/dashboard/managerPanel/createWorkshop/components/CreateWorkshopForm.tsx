@@ -192,7 +192,7 @@ const CreateWorkshopForm: React.FC<CreateWorkshopFormProps> = ({ onSuccess }) =>
       } else {
         setSubmitError(response.message || 'Failed to create workshop');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Create workshop error:', error);
       setSubmitError(
         error.response?.data?.message || 
@@ -309,6 +309,9 @@ const CreateWorkshopForm: React.FC<CreateWorkshopFormProps> = ({ onSuccess }) =>
                 className={`pl-10 ${errors.image_url ? 'border-red-500' : ''}`}
               />
             </div>
+            <p className="text-xs text-muted-foreground">
+              Enter a direct link to an image file (e.g., .jpg, .png, .gif). Avoid search URLs or non-image links.
+            </p>
             {errors.image_url && (
               <p className="text-sm text-red-500">{errors.image_url}</p>
             )}

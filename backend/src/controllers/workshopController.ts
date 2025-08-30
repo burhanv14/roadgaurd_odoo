@@ -221,9 +221,7 @@ const createWorkshop = async (req: Request, res: Response): Promise<void> => {
     res.status(201).json({
       success: true,
       message: 'Workshop created successfully.',
-      data: {
-        workshop: createdWorkshop
-      }
+      data: createdWorkshop
     });
 
   } catch (error) {
@@ -239,6 +237,14 @@ const createWorkshop = async (req: Request, res: Response): Promise<void> => {
           field: e.path,
           message: e.message
         }))
+      });
+      return;
+    }
+
+    if (err.name === 'SequelizeForeignKeyConstraintError') {
+      res.status(400).json({
+        success: false,
+        message: 'Invalid user reference. Please try logging in again.'
       });
       return;
     }
