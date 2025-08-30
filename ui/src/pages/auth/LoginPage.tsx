@@ -1,7 +1,9 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useQueryState } from 'nuqs';
 import { Button } from '@/components/ui/button';
+import { Trans } from '@/components/Trans';
 import { useAuth } from '@/hooks/useAuth';
+import { useTranslation } from '@/hooks/useTranslation';
 import { parseAsEmail, parseAsEncryptedPassword, parseAsLoading } from '@/lib/parsers';
 
 export default function LoginPage() {
@@ -10,6 +12,16 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useQueryState('loading', parseAsLoading);
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  // Get translated placeholders
+  const { t: emailPlaceholder } = useTranslation({ 
+    key: 'login.emailPlaceholder', 
+    text: 'Email address' 
+  });
+  const { t: passwordPlaceholder } = useTranslation({ 
+    key: 'login.passwordPlaceholder', 
+    text: 'Password' 
+  });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -45,15 +57,15 @@ export default function LoginPage() {
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to your account
+            <Trans translationKey="login.title" text="Sign in to your account" />
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Or{' '}
+            <Trans translationKey="login.or" text="Or" />{' '}
             <Link
               to="/signup"
               className="font-medium text-indigo-600 hover:text-indigo-500"
             >
-              create a new account
+              <Trans translationKey="login.createAccount" text="create a new account" />
             </Link>
           </p>
         </div>
@@ -61,7 +73,7 @@ export default function LoginPage() {
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
               <label htmlFor="email" className="sr-only">
-                Email address
+                <Trans translationKey="login.emailLabel" text="Email address" />
               </label>
               <input
                 id="email"
@@ -70,14 +82,14 @@ export default function LoginPage() {
                 autoComplete="email"
                 required
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
+                placeholder={emailPlaceholder}
                 value={email || ''}
                 onChange={handleChange}
               />
             </div>
             <div>
               <label htmlFor="password" className="sr-only">
-                Password
+                <Trans translationKey="login.passwordLabel" text="Password" />
               </label>
               <input
                 id="password"
@@ -86,7 +98,7 @@ export default function LoginPage() {
                 autoComplete="current-password"
                 required
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Password"
+                placeholder={passwordPlaceholder}
                 value={password || ''}
                 onChange={handleChange}
               />
@@ -102,13 +114,13 @@ export default function LoginPage() {
                 className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
               />
               <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
-                Remember me
+                <Trans translationKey="login.rememberMe" text="Remember me" />
               </label>
             </div>
 
             <div className="text-sm">
               <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500">
-                Forgot your password?
+                <Trans translationKey="login.forgotPassword" text="Forgot your password?" />
               </a>
             </div>
           </div>
@@ -119,7 +131,11 @@ export default function LoginPage() {
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               disabled={isLoading}
             >
-              {isLoading ? 'Signing in...' : 'Sign in'}
+              {isLoading ? (
+                <Trans translationKey="login.signingIn" text="Signing in..." />
+              ) : (
+                <Trans translationKey="login.signIn" text="Sign in" />
+              )}
             </Button>
           </div>
         </form>

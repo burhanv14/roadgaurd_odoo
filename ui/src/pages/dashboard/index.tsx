@@ -1,5 +1,9 @@
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
+import { Trans } from '@/components/Trans';
+import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { useTheme } from '@/hooks/useTheme';
 
 export default function DashboardPage() {
   const { user, logout } = useAuth();
@@ -9,21 +13,27 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white shadow">
+      <header className="bg-card shadow border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
-              <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+              <h1 className="text-3xl font-bold text-foreground">
+                <Trans translationKey="dashboard.title" text="Dashboard" />
+              </h1>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-gray-700">Welcome, {user?.name || 'User'}!</span>
+              <LanguageSwitcher />
+              <ThemeToggle variant="icon" />
+              <span className="text-muted-foreground">
+                <Trans translationKey="dashboard.welcome" text="Welcome" />, {user?.name || 'User'}!
+              </span>
               <Button
                 onClick={handleLogout}
                 className="bg-red-600 hover:bg-red-700 text-white"
               >
-                Logout
+                <Trans translationKey="dashboard.logout" text="Logout" />
               </Button>
             </div>
           </div>
@@ -34,31 +44,70 @@ export default function DashboardPage() {
       <main>
         <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
           <div className="px-4 py-6 sm:px-0">
+            
+            {/* Theme Demo Section */}
+            <div className="mb-8 bg-background border border-border rounded-lg p-6 shadow-sm">
+              <h2 className="text-xl font-semibold text-foreground mb-4">
+                <Trans translationKey="dashboard.themeDemo" text="Theme Controls" />
+              </h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Icon Toggle */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-medium text-muted-foreground">Icon Toggle</h3>
+                  <ThemeToggle variant="icon" />
+                </div>
+                
+                {/* Dropdown */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-medium text-muted-foreground">Dropdown</h3>
+                  <ThemeToggle variant="dropdown" />
+                </div>
+                
+                {/* Segmented Control */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-medium text-muted-foreground">Segmented Control</h3>
+                  <ThemeToggle variant="segmented" />
+                </div>
+              </div>
+              
+              {/* Theme Information */}
+              <div className="mt-6 p-4 bg-muted rounded-md">
+                <p className="text-sm text-muted-foreground">
+                  Current theme: <span className="font-medium text-foreground">{useTheme().theme}</span>
+                  {' | '}
+                  Resolved: <span className="font-medium text-foreground">{useTheme().resolvedTheme}</span>
+                  {' | '}
+                  System: <span className="font-medium text-foreground">{useTheme().systemTheme}</span>
+                </p>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Stats Cards */}
-              <div className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="bg-card overflow-hidden shadow rounded-lg border border-border">
                 <div className="p-5">
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
-                      <div className="w-8 h-8 bg-indigo-500 rounded-md flex items-center justify-center">
-                        <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <div className="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
+                        <svg className="w-5 h-5 text-primary-foreground" fill="currentColor" viewBox="0 0 20 20">
                           <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                       </div>
                     </div>
                     <div className="ml-5 w-0 flex-1">
                       <dl>
-                        <dt className="text-sm font-medium text-gray-500 truncate">
-                          Total Projects
+                        <dt className="text-sm font-medium text-muted-foreground truncate">
+                          <Trans translationKey="dashboard.totalProjects" text="Total Projects" />
                         </dt>
-                        <dd className="text-lg font-medium text-gray-900">12</dd>
+                        <dd className="text-lg font-medium text-foreground">12</dd>
                       </dl>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="bg-card overflow-hidden shadow rounded-lg border border-border">
                 <div className="p-5">
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
@@ -70,17 +119,17 @@ export default function DashboardPage() {
                     </div>
                     <div className="ml-5 w-0 flex-1">
                       <dl>
-                        <dt className="text-sm font-medium text-gray-500 truncate">
-                          Completed Tasks
+                        <dt className="text-sm font-medium text-muted-foreground truncate">
+                          <Trans translationKey="dashboard.completedTasks" text="Completed Tasks" />
                         </dt>
-                        <dd className="text-lg font-medium text-gray-900">8</dd>
+                        <dd className="text-lg font-medium text-foreground">8</dd>
                       </dl>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="bg-card overflow-hidden shadow rounded-lg border border-border">
                 <div className="p-5">
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
@@ -92,10 +141,10 @@ export default function DashboardPage() {
                     </div>
                     <div className="ml-5 w-0 flex-1">
                       <dl>
-                        <dt className="text-sm font-medium text-gray-500 truncate">
-                          Pending Tasks
+                        <dt className="text-sm font-medium text-muted-foreground truncate">
+                          <Trans translationKey="dashboard.pendingTasks" text="Pending Tasks" />
                         </dt>
-                        <dd className="text-lg font-medium text-gray-900">4</dd>
+                        <dd className="text-lg font-medium text-foreground">4</dd>
                       </dl>
                     </div>
                   </div>
@@ -105,13 +154,13 @@ export default function DashboardPage() {
 
             {/* Recent Activity */}
             <div className="mt-8">
-              <div className="bg-white shadow rounded-lg">
+              <div className="bg-card shadow rounded-lg border border-border">
                 <div className="px-4 py-5 sm:px-6">
-                  <h3 className="text-lg leading-6 font-medium text-gray-900">
-                    Recent Activity
+                  <h3 className="text-lg leading-6 font-medium text-foreground">
+                    <Trans translationKey="dashboard.recentActivity" text="Recent Activity" />
                   </h3>
                   <p className="mt-1 max-w-2xl text-sm text-gray-500">
-                    Your latest actions and updates.
+                    <Trans translationKey="dashboard.recentActivityDesc" text="Your latest actions and updates." />
                   </p>
                 </div>
                 <div className="border-t border-gray-200">
@@ -119,30 +168,30 @@ export default function DashboardPage() {
                     <li className="px-4 py-4 sm:px-6">
                       <div className="flex items-center justify-between">
                         <div className="text-sm font-medium text-indigo-600 truncate">
-                          New project created: "E-commerce Website"
+                          <Trans translationKey="dashboard.activity.newProject" text={`New project created: \"E-commerce Website\"`} />
                         </div>
                         <div className="ml-2 flex-shrink-0 text-sm text-gray-500">
-                          2 hours ago
+                          <Trans translationKey="dashboard.activity.2hoursAgo" text="2 hours ago" />
                         </div>
                       </div>
                     </li>
                     <li className="px-4 py-4 sm:px-6">
                       <div className="flex items-center justify-between">
                         <div className="text-sm font-medium text-indigo-600 truncate">
-                          Task completed: "Design homepage mockup"
+                          <Trans translationKey="dashboard.activity.taskCompleted" text={`Task completed: \"Design homepage mockup\"`} />
                         </div>
                         <div className="ml-2 flex-shrink-0 text-sm text-gray-500">
-                          4 hours ago
+                          <Trans translationKey="dashboard.activity.4hoursAgo" text="4 hours ago" />
                         </div>
                       </div>
                     </li>
                     <li className="px-4 py-4 sm:px-6">
                       <div className="flex items-center justify-between">
                         <div className="text-sm font-medium text-indigo-600 truncate">
-                          Team member added: "Sarah Johnson"
+                          <Trans translationKey="dashboard.activity.teamMemberAdded" text={`Team member added: \"Sarah Johnson\"`} />
                         </div>
                         <div className="ml-2 flex-shrink-0 text-sm text-gray-500">
-                          1 day ago
+                          <Trans translationKey="dashboard.activity.1dayAgo" text="1 day ago" />
                         </div>
                       </div>
                     </li>

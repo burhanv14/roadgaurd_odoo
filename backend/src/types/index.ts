@@ -39,9 +39,10 @@ export interface ILoginUser {
 // OTP interface
 export interface IOtp {
   id: string;
-  user_id: string;
+  user_id: string | null; // Nullable for pre-registration verification
+  email: string; // Add email field for pre-registration verification
   otp_code: string;
-  purpose: 'VERIFICATION' | 'PASSWORD_RESET';
+  purpose: 'VERIFICATION' | 'PASSWORD_RESET' | 'EMAIL_VERIFICATION';
   expires_at: Date;
   is_used: boolean;
   createdAt: Date;

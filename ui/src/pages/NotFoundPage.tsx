@@ -2,6 +2,7 @@ import type { FC } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FaHome } from "react-icons/fa";
+import { Trans } from '@/components/Trans';
 import Logo from "../assets/logo_odoo_2.svg";
 
 const NotFoundPage: FC = () => {
@@ -29,7 +30,7 @@ const NotFoundPage: FC = () => {
       </motion.h1>
 
       <p className="mt-4 text-lg text-gray-600 dark:text-gray-300">
-        Oops! The page you’re looking for doesn’t exist.
+        <Trans translationKey="notFound.message" text="Oops! The page you're looking for doesn't exist." />
       </p>
 
       {/* Road with Animation (CSS merged here via style) */}
@@ -64,6 +65,7 @@ const NotFoundPage: FC = () => {
         className="mt-10 flex items-center justify-center gap-2 px-6 py-3 rounded-full shadow-md transition
                    text-black hover:bg-gray-200
                    dark:bg-white dark:hover:bg-gray-200"
+        title="Go Home"
       >
         <FaHome size={23} />
       </Link>

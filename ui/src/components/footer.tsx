@@ -1,4 +1,5 @@
 import { FaFacebook, FaInstagram, FaLinkedin, FaYoutube, FaWhatsapp } from "react-icons/fa";
+import { Trans } from '@/components/Trans';
 
 export function RAFooter() {
   return (
@@ -7,17 +8,21 @@ export function RAFooter() {
         
         {/* Logo + Address */}
         <div>
-          <h2 className="text-2xl font-bold text-white">🚗 RoadGuard</h2>
+          <h2 className="text-2xl font-bold text-white">
+            🚗 <Trans translationKey="app.title" text="RoadGuard" />
+          </h2>
           <p className="mt-4 text-sm leading-6">
-            123 Main Street, MG Road <br />
-            Bengaluru, Karnataka - 560001 <br />
-            India
+            <Trans translationKey="footer.address" text="123 Main Street, MG Road" /> <br />
+            <Trans translationKey="footer.city" text="Bengaluru, Karnataka - 560001" /> <br />
+            <Trans translationKey="footer.country" text="India" />
           </p>
         </div>
 
         {/* Reach Us */}
         <div>
-          <h3 className="text-lg font-semibold text-white mb-3">Reach Us</h3>
+          <h3 className="text-lg font-semibold text-white mb-3">
+            <Trans translationKey="footer.reachUs" text="Reach Us" />
+          </h3>
           <p className="text-sm">support@roadguard.com</p>
           <p className="text-sm mt-1">+91 xxxxx xxxxx</p>
           <p className="text-sm mt-1">+91 acaca acaca</p>
@@ -25,35 +30,57 @@ export function RAFooter() {
 
         {/* Company */}
         <div>
-          <h3 className="text-lg font-semibold text-white mb-3">Company</h3>
+          <h3 className="text-lg font-semibold text-white mb-3">
+            <Trans translationKey="footer.company" text="Company" />
+          </h3>
           <ul className="space-y-2 text-sm">
-            <li><a href="/about" className="hover:text-white">About Us</a></li>
-            <li><a href="/careers" className="hover:text-white">Careers</a></li>
-            <li><a href="/contact" className="hover:text-white">Contact Us</a></li>
-            <li><a href="/news" className="hover:text-white">News</a></li>
+            <li><a href="/about" className="hover:text-white">
+              <Trans translationKey="footer.aboutUs" text="About Us" />
+            </a></li>
+            <li><a href="/careers" className="hover:text-white">
+              <Trans translationKey="footer.careers" text="Careers" />
+            </a></li>
+            <li><a href="/contact" className="hover:text-white">
+              <Trans translationKey="footer.contactUs" text="Contact Us" />
+            </a></li>
+            <li><a href="/news" className="hover:text-white">
+              <Trans translationKey="footer.news" text="News" />
+            </a></li>
           </ul>
         </div>
 
         {/* Services / Products */}
         <div>
-          <h3 className="text-lg font-semibold text-white mb-3">Services</h3>
+          <h3 className="text-lg font-semibold text-white mb-3">
+            <Trans translationKey="footer.services" text="Services" />
+          </h3>
           <ul className="space-y-2 text-sm">
-            <li>Flat Tyre</li>
-            <li>Battery Jumpstart</li>
-            <li>Key Unlock Assistance</li>
-            <li>Fuel Delivery</li>
-            <li>Towing</li>
+            <li><Trans translationKey="footer.flatTyre" text="Flat Tyre" /></li>
+            <li><Trans translationKey="footer.batteryJumpstart" text="Battery Jumpstart" /></li>
+            <li><Trans translationKey="footer.keyUnlock" text="Key Unlock Assistance" /></li>
+            <li><Trans translationKey="footer.fuelDelivery" text="Fuel Delivery" /></li>
+            <li><Trans translationKey="footer.towing" text="Towing" /></li>
           </ul>
         </div>
 
         {/* Quick Links */}
         <div>
-          <h3 className="text-lg font-semibold text-white mb-3">Quick Links</h3>
+          <h3 className="text-lg font-semibold text-white mb-3">
+            <Trans translationKey="footer.quickLinks" text="Quick Links" />
+          </h3>
           <ul className="space-y-2 text-sm">
-            <li><a href="/subscriptions" className="hover:text-white">My Subscriptions</a></li>
-            <li><a href="/stations" className="hover:text-white">Nearby Fuel Stations</a></li>
-            <li><a href="/fitment" className="hover:text-white">Fitment Centers</a></li>
-            <li><a href="/recap" className="hover:text-white">Year Recap</a></li>
+            <li><a href="/subscriptions" className="hover:text-white">
+              <Trans translationKey="footer.mySubscriptions" text="My Subscriptions" />
+            </a></li>
+            <li><a href="/stations" className="hover:text-white">
+              <Trans translationKey="footer.nearbyStations" text="Nearby Fuel Stations" />
+            </a></li>
+            <li><a href="/fitment" className="hover:text-white">
+              <Trans translationKey="footer.fitmentCenters" text="Fitment Centers" />
+            </a></li>
+            <li><a href="/recap" className="hover:text-white">
+              <Trans translationKey="footer.yearRecap" text="Year Recap" />
+            </a></li>
           </ul>
         </div>
       </div>
@@ -71,13 +98,17 @@ export function RAFooter() {
 
         {/* Copyright */}
         <p className="text-sm text-gray-400 mt-4 md:mt-0">
-          © {new Date().getFullYear()} RoadGuard Services Pvt. Ltd. All Rights Reserved.
+          © {new Date().getFullYear()} <Trans translationKey="app.title" text="RoadGuard" /> <Trans translationKey="footer.servicesPvtLtd" text="Services Pvt. Ltd." /> <Trans translationKey="footer.allRightsReserved" text="All Rights Reserved." />
         </p>
 
         {/* Policies */}
         <div className="flex space-x-4 text-sm mt-4 md:mt-0">
-          <a href="/privacy" className="hover:text-white">Privacy Policy</a>
-          <a href="/terms" className="hover:text-white">Terms & Conditions</a>
+          <a href="/privacy" className="hover:text-white">
+            <Trans translationKey="footer.privacyPolicy" text="Privacy Policy" />
+          </a>
+          <a href="/terms" className="hover:text-white">
+            <Trans translationKey="footer.termsConditions" text="Terms & Conditions" />
+          </a>
         </div>
       </div>
     </footer>

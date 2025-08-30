@@ -11,5 +11,12 @@ declare namespace NodeJS {
     JWT_EXPIRES_IN: string;
     FRONTEND_URL: string;
     OTP_EXPIRY_MINUTES: string;
+    // Email configuration
+    EMAIL_HOST: string;
+    EMAIL_PORT: string;
+    EMAIL_USER: string;
+    EMAIL_PASS: string;
+    EMAIL_FROM: string;
+    EMAIL_SECURE: string;
   }
 }
