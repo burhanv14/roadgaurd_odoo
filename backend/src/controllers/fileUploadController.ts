@@ -6,10 +6,10 @@ import { IAuthenticatedRequest, IApiResponse } from '../types';
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
+  destination: (req: Request, file: Express.Multer.File, cb: (error: Error | null, destination: string) => void) => {
     cb(null, 'uploads/service-images/');
   },
-  filename: (req, file, cb) => {
+  filename: (req: Request, file: Express.Multer.File, cb: (error: Error | null, filename: string) => void) => {
     const uniqueName = `${uuidv4()}-${Date.now()}${path.extname(file.originalname)}`;
     cb(null, uniqueName);
   }

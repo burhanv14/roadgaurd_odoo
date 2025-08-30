@@ -175,7 +175,13 @@ export class WorkshopService {
     const axiosInstance = this.createAxiosInstance();
     
     const response = await axiosInstance.get(`/workshops/${id}`);
-    return response.data;
+    // The backend returns data.workshop, so we need to restructure it
+    const backendData = response.data;
+    return {
+      success: backendData.success,
+      message: backendData.message,
+      data: backendData.data.workshop
+    };
   }
 
   /**
@@ -185,7 +191,13 @@ export class WorkshopService {
     const axiosInstance = this.createAxiosInstance();
     
     const response = await axiosInstance.get(`/workshops/owner/${ownerId}`);
-    return response.data;
+    // The backend returns data.workshops, so we need to restructure it
+    const backendData = response.data;
+    return {
+      success: backendData.success,
+      message: backendData.message,
+      data: backendData.data.workshops
+    };
   }
 
   /**
@@ -225,7 +237,13 @@ export class WorkshopService {
     const axiosInstance = this.createAxiosInstance();
     
     const response = await axiosInstance.get(`/workshops/${id}/details`);
-    return response.data;
+    // The backend returns data.workshop, so we need to restructure it
+    const backendData = response.data;
+    return {
+      success: backendData.success,
+      message: backendData.message,
+      data: backendData.data.workshop
+    };
   }
 
   /**
