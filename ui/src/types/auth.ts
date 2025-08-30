@@ -1,11 +1,11 @@
 import type { BaseEntity, ID } from "./common";
 
-// User roles
+// User roles - matching backend UserRole enum
 export const UserRole = {
-  ADMIN: "admin",
-  USER: "user",
-  MODERATOR: "moderator",
-  GUEST: "guest",
+  ADMIN: "ADMIN",
+  MECHANIC_OWNER: "MECHANIC_OWNER", 
+  MECHANIC_EMPLOYEE: "MECHANIC_EMPLOYEE",
+  USER: "USER",
 } as const;
 
 export type UserRole = typeof UserRole[keyof typeof UserRole];
@@ -14,16 +14,15 @@ export type UserRole = typeof UserRole[keyof typeof UserRole];
 export interface User extends BaseEntity {
   email: string;
   name: string;
-  roles: UserRole[];
-  isEmailVerified: boolean;
-  lastLoginAt?: string;
-  avatar?: string;
-  isActive: boolean;
+  phone: string;
+  role: UserRole;
+  is_verified: boolean;
+  // Removed lastLoginAt, avatar, isActive as they don't exist in backend
 }
 
 // Authentication request DTOs
 export interface LoginRequest {
-  email: string;
+  identifier: string; // Changed from email to identifier to match backend
   password: string;
 }
 
@@ -31,6 +30,33 @@ export interface SignupRequest {
   email: string;
   password: string;
   name: string;
+  phone: string;
+  role?: UserRole; // Made optional to match backend
+}
+
+// Email verification request DTOs
+export interface RequestEmailVerificationRequest {
+  email: string;
+  name: string;
+}
+
+export interface VerifyEmailRequest {
+  email: string;
+  otpCode: string;
+}
+
+export interface ResendEmailVerificationRequest {
+  email: string;
+  name: string;
+}
+
+export interface VerifyOtpRequest {
+  identifier: string;
+  otpCode: string;
+}
+
+export interface ResendOtpRequest {
+  identifier: string;
 }
 
 export interface DeleteAccountRequest {
@@ -42,13 +68,8 @@ export interface DeleteAccountRequest {
 export interface AuthResponse {
   user: User;
   token: string;
-  refreshToken?: string;
-  expiresAt: string;
+  // Removed refreshToken and expiresAt as backend doesn't provide them
 }
-
-export interface LoginResponse extends AuthResponse {}
-
-export interface SignupResponse extends AuthResponse {}
 
 // Auth store state interface
 export interface AuthState {
@@ -70,13 +91,19 @@ export interface AuthActions {
   setLoading: (loading: boolean) => void;
   checkAuthStatus: () => void;
   updateUserProfile: (updates: Partial<User>) => void;
+  // Email verification methods
+  requestEmailVerification: (data: RequestEmailVerificationRequest) => Promise<void>;
+  verifyEmail: (data: VerifyEmailRequest) => Promise<void>;
+  resendEmailVerification: (data: ResendEmailVerificationRequest) => Promise<void>;
+  verifyOtp: (data: VerifyOtpRequest) => Promise<void>;
+  resendOtp: (data: ResendOtpRequest) => Promise<void>;
 }
 
 // Combined auth store interface
 export interface AuthStore extends AuthState, AuthActions {}
 
 // Auth context interface for React Context (alternative to Zustand)
-export interface AuthContextType extends AuthStore {}
+export type AuthContextType = AuthStore
 
 // Permission types
 export type Permission = 
@@ -94,9 +121,11 @@ export interface UserPermissions {
 
 // Token payload interface (for JWT decoding)
 export interface TokenPayload {
-  sub: ID; // user id
+  sub?: ID; // user id (frontend format)
+  userId?: string; // user id (backend format)
   email: string;
-  roles: UserRole[];
+  phone: string;
+  role: UserRole;
   iat: number;
   exp: number;
   iss?: string;
@@ -122,7 +151,7 @@ export type AuthErrorType = typeof AuthErrorType[keyof typeof AuthErrorType];
 export interface AuthError {
   type: AuthErrorType;
   message: string;
-  details?: any;
+  details?: unknown;
 }
 
 // Auth configuration

@@ -1,50 +1,38 @@
 import React, { useState } from "react";
 import { Trans } from "@/components/Trans";
-import { useQueryState, parseAsString, createParser } from "nuqs";
-
-// custom encoded parser for password
-const parseAsEncodedString = createParser({
-  parse: (value: string) => {
-    if (!value) return "";
-    try {
-      return atob(value); // decode base64
-    } catch {
-      return "";
-    }
-  },
-  serialize: (value: string) => {
-    if (!value) return "";
-    return btoa(value); // encode base64
-  },
-});
+import { useNavigate } from "react-router-dom";
+import { useAuthStore } from "@/stores/auth.store";
 
 export default function LoginForm(): React.ReactElement {
-  const [identifier, setIdentifier] = useQueryState(
-    "identifier",
-    parseAsString.withDefault("")
-  );
-
-  const [password, setPassword] = useQueryState(
-    "password",
-    parseAsEncodedString.withDefault("")
-  );
-
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  
+  const navigate = useNavigate();
+  const { login, error, clearError } = useAuthStore();
 
-  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
     if (!identifier || !password) {
       alert("Please enter both your identifier and password.");
       return;
     }
+
     setSubmitting(true);
-    setTimeout(() => {
-      alert(`Logged in successfully!\nIdentifier: ${identifier}`);
-      setIdentifier("");
-      setPassword("");
+    clearError();
+
+    try {
+      await login({ identifier, password });
+      // Redirect to dashboard on successful login
+      navigate("/dashboard");
+    } catch (error) {
+      // Error is already set in the store
+      console.error("Login failed:", error);
+    } finally {
       setSubmitting(false);
-    }, 1000);
-  }
+    }
+  };
 
   return (
     <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-2xl shadow-gray-200/40 dark:shadow-black/40">
@@ -61,7 +49,13 @@ export default function LoginForm(): React.ReactElement {
           </p>
         </div>
 
-        <form onSubmit={onSubmit} className="space-y-6">
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid gap-2">
             <label
               htmlFor="identifier"
@@ -69,13 +63,13 @@ export default function LoginForm(): React.ReactElement {
             >
               <Trans
                 translationKey="login.form.identifierLabel"
-                text="Email or username"
+                text="Email or phone"
               />
             </label>
             <input
               id="identifier"
-              placeholder="you@example.com"
-              value={identifier ?? ""}
+              placeholder="you@example.com or +1234567890"
+              value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
               autoComplete="username"
               required
@@ -108,7 +102,7 @@ export default function LoginForm(): React.ReactElement {
               id="password"
               type="password"
               placeholder="••••••••"
-              value={password ?? ""}
+              value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
               required

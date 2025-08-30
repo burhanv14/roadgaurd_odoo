@@ -37,13 +37,9 @@ const authMiddleware = async (req: IAuthenticatedRequest, res: Response, next: N
     }
 
     // Verify token
-    const jwtSecret = process.env['JWT_SECRET'];
-    if (!jwtSecret) {
-      res.status(500).json({
-        success: false,
-        message: 'Server configuration error.'
-      });
-      return;
+    const jwtSecret = process.env['JWT_SECRET'] || 'fallback_secret_for_development_only';
+    if (!jwtSecret || jwtSecret === 'fallback_secret_for_development_only') {
+      console.warn('⚠️  JWT_SECRET is not properly configured. Using fallback secret for development.');
     }
     
     const decoded = jwt.verify(token, jwtSecret) as IJwtPayload;

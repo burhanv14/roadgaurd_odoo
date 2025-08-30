@@ -9,7 +9,8 @@ const createTransporter = () => {
   const secure = process.env['EMAIL_SECURE'] === 'true';
 
   if (!host || !user || !pass) {
-    throw new Error('Email configuration is incomplete. Please check EMAIL_HOST, EMAIL_USER, and EMAIL_PASS environment variables.');
+    console.warn('⚠️  Email configuration is incomplete. Using console logging for OTP.');
+    return null;
   }
 
   return nodemailer.createTransport({
@@ -133,14 +134,27 @@ export const sendOtpEmail = async (
 ): Promise<boolean> => {
   try {
     const transporter = createTransporter();
+    
+    // If email is not configured, just log the OTP
+    if (!transporter) {
+      console.log('\n📧 OTP NOTIFICATION (Email not configured):');
+      console.log('==========================================');
+      console.log(`📧 Email: ${to}`);
+      console.log(`👤 User: ${userName}`);
+      console.log(`🔐 OTP Code: ${otpCode}`);
+      console.log(`⏰ Valid for: ${expiryMinutes} minutes`);
+      console.log('==========================================\n');
+      return true;
+    }
+
     const fromEmail = process.env['EMAIL_FROM'] || process.env['EMAIL_USER'];
     
     if (!fromEmail) {
-      throw new Error('EMAIL_FROM environment variable is not set');
+      console.warn('⚠️  EMAIL_FROM not set, using EMAIL_USER as fallback');
     }
 
     const mailOptions = {
-      from: `"RoadGuard" <${fromEmail}>`,
+      from: `"RoadGuard" <${fromEmail || 'noreply@roadguard.com'}>`,
       to,
       subject: 'RoadGuard - Your OTP Verification Code',
       html: getOtpEmailTemplate(userName, otpCode, expiryMinutes),
@@ -159,6 +173,13 @@ export const sendOtpEmail = async (
 export const testEmailConfiguration = async (): Promise<boolean> => {
   try {
     const transporter = createTransporter();
+    
+    // If transporter is null, email is not configured
+    if (!transporter) {
+      console.log('⚠️  Email configuration is not set up');
+      return false;
+    }
+    
     await transporter.verify();
     console.log('✅ Email configuration is valid');
     return true;

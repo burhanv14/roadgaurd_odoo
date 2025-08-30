@@ -14,9 +14,9 @@ const generateToken = (user: User): string => {
     role: user.role
   };
 
-  const secret = process.env['JWT_SECRET'];
-  if (!secret) {
-    throw new Error('JWT_SECRET is not defined');
+  const secret = process.env['JWT_SECRET'] || 'fallback_secret_for_development_only';
+  if (!secret || secret === 'fallback_secret_for_development_only') {
+    console.warn('⚠️  JWT_SECRET is not properly configured. Using fallback secret for development.');
   }
   
   return jwt.sign(payload, secret, { expiresIn: '7d' });
@@ -669,6 +669,26 @@ const resendOtp = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
+// POST /auth/logout
+const logout = async (req: IAuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    // In a stateless JWT system, we don't need to do anything on the server side
+    // The client should remove the token from storage
+    // However, we can implement a blacklist if needed for security
+    
+    res.status(200).json({
+      success: true,
+      message: 'Logged out successfully.'
+    });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error during logout.'
+    });
+  }
+};
+
 export {
   requestEmailVerification,
   verifyEmail,
@@ -677,5 +697,6 @@ export {
   verifyOtp,
   login,
   getMe,
-  resendOtp
+  resendOtp,
+  logout
 };

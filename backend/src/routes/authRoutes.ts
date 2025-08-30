@@ -7,7 +7,8 @@ import {
   verifyOtp, 
   login, 
   getMe, 
-  resendOtp 
+  resendOtp,
+  logout
 } from '../controllers/authController';
 import authMiddleware from '../middlewares/authMiddleware';
 import { testEmailConfiguration } from '../services/emailService';
@@ -53,5 +54,9 @@ router.post('/login', login);
 
 // Protected routes
 router.get('/me', authMiddleware, getMe);
+router.post('/logout', authMiddleware, logout);
+
+// Public logout route (for client-side logout)
+router.post('/logout-public', logout);
 
 export default router;

@@ -11,14 +11,19 @@ export const AUTH_CONFIG: AuthConfig = {
 // API endpoint constants
 export const AUTH_ENDPOINTS = {
   LOGIN: "/auth/login",
-  SIGNUP: "/auth/register",
-  LOGOUT: "/auth/logout",
-  REFRESH: "/auth/refresh",
-  PROFILE: "/auth/profile",
-  UPDATE_PROFILE: "/auth/profile",
-  FORGOT_PASSWORD: "/auth/reset-password",
-  RESET_PASSWORD: "/auth/reset-password",
-  DELETE_ACCOUNT: "/auth/delete-account", // This endpoint needs to be added to backend
+  SIGNUP: "/auth/signup", // Changed from /auth/register to match backend
+  REQUEST_EMAIL_VERIFICATION: "/auth/request-email-verification",
+  VERIFY_EMAIL: "/auth/verify-email",
+  RESEND_EMAIL_VERIFICATION: "/auth/resend-email-verification",
+  VERIFY_OTP: "/auth/verify-otp",
+  RESEND_OTP: "/auth/resend-otp",
+  LOGOUT: "/auth/logout-public", // Public logout endpoint
+  REFRESH: "/auth/refresh", // This endpoint doesn't exist in backend yet
+  PROFILE: "/auth/me", // Changed to match backend endpoint
+  UPDATE_PROFILE: "/auth/profile", // This endpoint doesn't exist in backend yet
+  FORGOT_PASSWORD: "/auth/reset-password", // This endpoint doesn't exist in backend yet
+  RESET_PASSWORD: "/auth/reset-password", // This endpoint doesn't exist in backend yet
+  DELETE_ACCOUNT: "/auth/delete-account", // This endpoint doesn't exist in backend yet
 } as const;
 
 // Token configuration
@@ -49,10 +54,10 @@ export const COOKIE_CONFIG = {
 
 // Default user permissions based on roles
 export const DEFAULT_PERMISSIONS = {
-  admin: ["read", "write", "delete", "admin", "moderate", "manage_users", "manage_content"],
-  moderator: ["read", "write", "moderate", "manage_content"],
-  user: ["read", "write"],
-  guest: ["read"],
+  ADMIN: ["read", "write", "delete", "admin", "moderate", "manage_users", "manage_content"],
+  MECHANIC_OWNER: ["read", "write", "moderate", "manage_content"],
+  MECHANIC_EMPLOYEE: ["read", "write"],
+  USER: ["read", "write"],
 } as const;
 
 // Auth error messages
@@ -83,7 +88,7 @@ export const VALIDATION_PATTERNS = {
 
 // Environment variables with defaults
 export const ENV = {
-  API_BASE_URL: import.meta.env.VITE_API_BASE_URL || "http://localhost:3000",
+  API_BASE_URL: import.meta.env.VITE_API_BASE_URL || "http://localhost:5000",
   APP_ENV: import.meta.env.VITE_APP_ENV || "development",
   IS_PRODUCTION: import.meta.env.PROD,
   IS_DEVELOPMENT: import.meta.env.DEV,

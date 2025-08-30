@@ -7,6 +7,11 @@ import type {
   SignupRequest,
   DeleteAccountRequest,
   User,
+  RequestEmailVerificationRequest,
+  VerifyEmailRequest,
+  ResendEmailVerificationRequest,
+  VerifyOtpRequest,
+  ResendOtpRequest,
 } from "../types/auth";
 import { authService } from "../services/auth.service";
 import { TokenManager, AuthStorage } from "../lib/token.utils";
@@ -40,7 +45,7 @@ export const useAuthStore = create<AuthStore>()(
           set({
             user: authResponse.user,
             token: authResponse.token,
-            expiresAt: authResponse.expiresAt,
+            expiresAt: null, // Backend doesn't provide expiresAt
             isAuthenticated: true,
             isLoading: false,
             error: null,
@@ -72,7 +77,7 @@ export const useAuthStore = create<AuthStore>()(
           set({
             user: authResponse.user,
             token: authResponse.token,
-            expiresAt: authResponse.expiresAt,
+            expiresAt: null, // Backend doesn't provide expiresAt
             isAuthenticated: true,
             isLoading: false,
             error: null,
@@ -95,20 +100,18 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
-      logout: () => {
+      logout: async () => {
         try {
-          // Clear local state immediately (no need to call backend)
+          // Call backend logout
+          await authService.logout();
+        } catch (error) {
+          console.error("Logout error:", error);
+          // Continue with local cleanup even if backend fails
+        } finally {
+          // Clear local state and storage
           set({
             ...initialState,
           });
-
-          // Clear storage
-          TokenManager.clearTokens();
-          AuthStorage.clearAll();
-        } catch (error) {
-          console.error("Logout error:", error);
-          // Still clear local state even if there's an error
-          set({ ...initialState });
           TokenManager.clearTokens();
           AuthStorage.clearAll();
         }
@@ -178,6 +181,75 @@ export const useAuthStore = create<AuthStore>()(
           AuthStorage.saveUserData(updatedUser);
         }
       },
+
+      // Email verification methods
+      requestEmailVerification: async (data: RequestEmailVerificationRequest) => {
+        set({ isLoading: true, error: null });
+        try {
+          await authService.requestEmailVerification(data);
+          set({ isLoading: false, error: null });
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : "Failed to request email verification";
+          set({ isLoading: false, error: errorMessage });
+          throw error;
+        }
+      },
+
+      verifyEmail: async (data: VerifyEmailRequest) => {
+        set({ isLoading: true, error: null });
+        try {
+          await authService.verifyEmail(data);
+          set({ isLoading: false, error: null });
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : "Failed to verify email";
+          set({ isLoading: false, error: errorMessage });
+          throw error;
+        }
+      },
+
+      resendEmailVerification: async (data: ResendEmailVerificationRequest) => {
+        set({ isLoading: true, error: null });
+        try {
+          await authService.resendEmailVerification(data);
+          set({ isLoading: false, error: null });
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : "Failed to resend email verification";
+          set({ isLoading: false, error: errorMessage });
+          throw error;
+        }
+      },
+
+      verifyOtp: async (data: VerifyOtpRequest) => {
+        set({ isLoading: true, error: null });
+        try {
+          const authResponse = await authService.verifyOtp(data);
+          set({
+            user: authResponse.user,
+            token: authResponse.token,
+            expiresAt: null,
+            isAuthenticated: true,
+            isLoading: false,
+            error: null,
+          });
+          AuthStorage.saveUserData(authResponse.user);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : "Failed to verify OTP";
+          set({ isLoading: false, error: errorMessage });
+          throw error;
+        }
+      },
+
+      resendOtp: async (data: ResendOtpRequest) => {
+        set({ isLoading: true, error: null });
+        try {
+          await authService.resendOtp(data);
+          set({ isLoading: false, error: null });
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : "Failed to resend OTP";
+          set({ isLoading: false, error: errorMessage });
+          throw error;
+        }
+      },
     }),
     {
       name: "auth-store",
@@ -206,10 +278,10 @@ export const useIsAuthenticated = () =>
 export const useAuthLoading = () => useAuthStore((state) => state.isLoading);
 export const useAuthError = () => useAuthStore((state) => state.error);
 
-// Fixed: Cache the empty array to prevent infinite re-renders
-const EMPTY_ROLES_ARRAY: string[] = [];
-export const useUserRoles = () =>
-  useAuthStore((state) => state.user?.roles ?? EMPTY_ROLES_ARRAY);
+// Fixed: Cache the empty string to prevent infinite re-renders
+const EMPTY_ROLE = "";
+export const useUserRole = () =>
+  useAuthStore((state) => state.user?.role ?? EMPTY_ROLE);
 
 // Separate action selectors to avoid creating new objects on every render
 export const useLoginAction = () => useAuthStore((state) => state.login);
@@ -226,6 +298,18 @@ export const useCheckAuthStatusAction = () =>
 export const useUpdateProfileAction = () =>
   useAuthStore((state) => state.updateUserProfile);
 
+// Email verification action selectors
+export const useRequestEmailVerificationAction = () =>
+  useAuthStore((state) => state.requestEmailVerification);
+export const useVerifyEmailAction = () =>
+  useAuthStore((state) => state.verifyEmail);
+export const useResendEmailVerificationAction = () =>
+  useAuthStore((state) => state.resendEmailVerification);
+export const useVerifyOtpAction = () =>
+  useAuthStore((state) => state.verifyOtp);
+export const useResendOtpAction = () =>
+  useAuthStore((state) => state.resendOtp);
+
 // Legacy action selectors - use individual selectors above for better performance
 export const useAuthActions = () => {
   const login = useLoginAction();
@@ -236,6 +320,11 @@ export const useAuthActions = () => {
   const setLoading = useSetLoadingAction();
   const checkAuthStatus = useCheckAuthStatusAction();
   const updateUserProfile = useUpdateProfileAction();
+  const requestEmailVerification = useRequestEmailVerificationAction();
+  const verifyEmail = useVerifyEmailAction();
+  const resendEmailVerification = useResendEmailVerificationAction();
+  const verifyOtp = useVerifyOtpAction();
+  const resendOtp = useResendOtpAction();
 
   return {
     login,
@@ -246,5 +335,10 @@ export const useAuthActions = () => {
     setLoading,
     checkAuthStatus,
     updateUserProfile,
+    requestEmailVerification,
+    verifyEmail,
+    resendEmailVerification,
+    verifyOtp,
+    resendOtp,
   };
 };

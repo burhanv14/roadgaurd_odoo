@@ -159,10 +159,14 @@ export class TokenManager {
     const payload = this.decodeToken(authToken);
     if (!payload) return null;
 
+    // Handle both backend format (userId) and frontend format (sub)
+    const userId = payload.sub || payload.userId;
+
     return {
-      sub: payload.sub,
+      sub: userId,
       email: payload.email,
-      roles: payload.roles,
+      phone: payload.phone,
+      role: payload.role,
     };
   }
 
@@ -196,7 +200,7 @@ export class AuthStorage {
   /**
    * Save user data to storage
    */
-  static saveUserData(userData: any): void {
+  static saveUserData(userData: unknown): void {
     try {
       localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData));
     } catch (error) {
@@ -207,7 +211,7 @@ export class AuthStorage {
   /**
    * Get user data from storage
    */
-  static getUserData(): any | null {
+  static getUserData(): unknown | null {
     try {
       const userData = localStorage.getItem(STORAGE_KEYS.USER_DATA);
       return userData ? JSON.parse(userData) : null;
@@ -220,7 +224,7 @@ export class AuthStorage {
   /**
    * Save auth state to storage
    */
-  static saveAuthState(state: any): void {
+  static saveAuthState(state: unknown): void {
     try {
       localStorage.setItem(STORAGE_KEYS.AUTH_STATE, JSON.stringify(state));
     } catch (error) {
@@ -231,7 +235,7 @@ export class AuthStorage {
   /**
    * Get auth state from storage
    */
-  static getAuthState(): any | null {
+  static getAuthState(): unknown | null {
     try {
       const state = localStorage.getItem(STORAGE_KEYS.AUTH_STATE);
       return state ? JSON.parse(state) : null;

@@ -1,6 +1,7 @@
 import LoginHero from "./components/LoginHero.jsx";
 import LoginForm from "./components/LoginForm.jsx";
 import { Trans } from "@/components/Trans.js";
+import { Link } from "react-router-dom";
 
 // --- Main LoginPage Component ---
 export default function LoginPage() {
@@ -30,10 +31,9 @@ export default function LoginPage() {
                 translationKey="login.page.signupPrompt"
                 text="Don't have an account? "
               />
-              <a href="#" className="underline underline-offset-4 hover:text-amber-600 dark:hover:text-amber-500">
+                            <Link to="/signup" className="underline underline-offset-4 hover:text-amber-600 dark:hover:text-amber-500">
                 <Trans translationKey="login.page.signupLink" text="Sign up" />
-              </a>
-              .
+                    </Link>
             </p>
           </div>
         </div>

@@ -6,7 +6,7 @@ import {
   useIsAuthenticated,
   useAuthLoading,
   useAuthError,
-  useUserRoles,
+  useUserRole,
   useLoginAction,
   useSignupAction,
   useLogoutAction,
@@ -14,6 +14,11 @@ import {
   useClearErrorAction,
   useUpdateProfileAction,
   useCheckAuthStatusAction,
+  useRequestEmailVerificationAction,
+  useVerifyEmailAction,
+  useResendEmailVerificationAction,
+  useVerifyOtpAction,
+  useResendOtpAction,
 } from "../stores/auth.store";
 import type {
   LoginRequest,
@@ -34,7 +39,7 @@ export const useAuth = () => {
   const isAuthenticated = useIsAuthenticated();
   const isLoading = useAuthLoading();
   const error = useAuthError();
-  const roles = useUserRoles();
+  const role = useUserRole();
   
   // Individual action selectors to prevent infinite loops
   const login = useLoginAction();
@@ -44,6 +49,11 @@ export const useAuth = () => {
   const clearError = useClearErrorAction();
   const updateProfile = useUpdateProfileAction();
   const checkAuthStatus = useCheckAuthStatusAction();
+  const requestEmailVerification = useRequestEmailVerificationAction();
+  const verifyEmail = useVerifyEmailAction();
+  const resendEmailVerification = useResendEmailVerificationAction();
+  const verifyOtp = useVerifyOtpAction();
+  const resendOtp = useResendOtpAction();
 
   // Initialize auth check on mount
   useEffect(() => {
@@ -57,7 +67,7 @@ export const useAuth = () => {
     isAuthenticated,
     isLoading,
     error,
-    roles,
+    role,
     
     // Actions
     login,
@@ -67,14 +77,20 @@ export const useAuth = () => {
     clearError,
     updateProfile,
     checkAuthStatus,
+    requestEmailVerification,
+    verifyEmail,
+    resendEmailVerification,
+    verifyOtp,
+    resendOtp,
     
     // Utility methods
-    hasRole: (role: UserRole) => roles.includes(role),
-    hasAnyRole: (rolesToCheck: UserRole[]) => rolesToCheck.some(role => roles.includes(role)),
-    hasAllRoles: (rolesToCheck: UserRole[]) => rolesToCheck.every(role => roles.includes(role)),
-    isAdmin: roles.includes("admin" as UserRole),
-    isModerator: roles.includes("moderator" as UserRole),
-    isUser: roles.includes("user" as UserRole),
+    hasRole: (roleToCheck: UserRole) => role === roleToCheck,
+    hasAnyRole: (rolesToCheck: UserRole[]) => rolesToCheck.includes(role as UserRole),
+    hasAllRoles: (rolesToCheck: UserRole[]) => rolesToCheck.includes(role as UserRole),
+    isAdmin: role === "ADMIN",
+    isMechanicOwner: role === "MECHANIC_OWNER",
+    isMechanicEmployee: role === "MECHANIC_EMPLOYEE",
+    isUser: role === "USER",
   };
 };
 
@@ -118,11 +134,9 @@ export const useUserProfile = () => {
     // User info shortcuts
     name: user?.name || "",
     email: user?.email || "",
-    avatar: user?.avatar,
-    roles: user?.roles || [],
-    isEmailVerified: user?.isEmailVerified || false,
-    isActive: user?.isActive || false,
-    lastLoginAt: user?.lastLoginAt,
+    phone: user?.phone || "",
+    role: user?.role || "",
+    is_verified: user?.is_verified || false,
   };
 };
 
@@ -158,27 +172,27 @@ export const useAuthTokens = () => {
  * Hook for role-based access control
  */
 export const usePermissions = () => {
-  const roles = useUserRoles();
+  const role = useUserRole();
 
   const hasRole = useCallback(
-    (role: UserRole): boolean => {
-      return roles.includes(role);
+    (roleToCheck: UserRole): boolean => {
+      return role === roleToCheck;
     },
-    [roles]
+    [role]
   );
 
   const hasAnyRole = useCallback(
     (rolesToCheck: UserRole[]): boolean => {
-      return rolesToCheck.some(role => roles.includes(role));
+      return rolesToCheck.includes(role as UserRole);
     },
-    [roles]
+    [role]
   );
 
   const hasAllRoles = useCallback(
     (rolesToCheck: UserRole[]): boolean => {
-      return rolesToCheck.every(role => roles.includes(role));
+      return rolesToCheck.includes(role as UserRole);
     },
-    [roles]
+    [role]
   );
 
   const canAccess = useCallback(
@@ -193,17 +207,17 @@ export const usePermissions = () => {
   );
 
   return {
-    roles,
+    role,
     hasRole,
     hasAnyRole,
     hasAllRoles,
     canAccess,
     
     // Convenience boolean flags
-    isAdmin: hasRole("admin" as UserRole),
-    isModerator: hasRole("moderator" as UserRole),
-    isUser: hasRole("user" as UserRole),
-    isGuest: hasRole("guest" as UserRole),
+    isAdmin: hasRole("ADMIN" as UserRole),
+    isMechanicOwner: hasRole("MECHANIC_OWNER" as UserRole),
+    isMechanicEmployee: hasRole("MECHANIC_EMPLOYEE" as UserRole),
+    isUser: hasRole("USER" as UserRole),
   };
 };
 
@@ -292,8 +306,8 @@ export const useSignup = () => {
 export const useLogout = () => {
   const logout = useLogoutAction();
 
-  const logoutUser = useCallback(() => {
-    logout();
+  const logoutUser = useCallback(async () => {
+    await logout();
   }, [logout]);
 
   return {

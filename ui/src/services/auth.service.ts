@@ -5,6 +5,12 @@ import type {
   SignupRequest,
   DeleteAccountRequest,
   AuthResponse,
+  RequestEmailVerificationRequest,
+  VerifyEmailRequest,
+  ResendEmailVerificationRequest,
+  VerifyOtpRequest,
+  ResendOtpRequest,
+  User,
 } from "../types/auth";
 import type { ApiResponse } from "../types/api";
 import { AUTH_ENDPOINTS, ENV, AUTH_ERROR_MESSAGES } from "../config/auth.config";
@@ -76,9 +82,11 @@ export class AuthService {
   /**
    * Handle API errors and convert them to user-friendly messages
    */
-  private handleError(error: any): Error {
-    if (error.response) {
-      const { status, data } = error.response;
+  private handleError(error: unknown): Error {
+    // Type guard for axios error response
+    if (error && typeof error === 'object' && 'response' in error) {
+      const axiosError = error as { response: { status: number; data?: { message?: string } } };
+      const { status, data } = axiosError.response;
       
       switch (status) {
         case 400:
@@ -97,10 +105,11 @@ export class AuthService {
         default:
           return new Error(data?.message || AUTH_ERROR_MESSAGES.UNKNOWN_ERROR);
       }
-    } else if (error.request) {
+    } else if (error && typeof error === 'object' && 'request' in error) {
       return new Error(AUTH_ERROR_MESSAGES.NETWORK_ERROR);
     } else {
-      return new Error(error.message || AUTH_ERROR_MESSAGES.UNKNOWN_ERROR);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return new Error(errorMessage || AUTH_ERROR_MESSAGES.UNKNOWN_ERROR);
     }
   }
 
@@ -118,8 +127,8 @@ export class AuthService {
       if (response.data.success && response.data.data) {
         const authData = response.data.data;
         
-        // Store both tokens
-        TokenManager.setToken(authData.token, authData.refreshToken);
+        // Store token (backend doesn't provide refresh token)
+        TokenManager.setToken(authData.token);
         
         return authData;
       }
@@ -131,7 +140,64 @@ export class AuthService {
   }
 
   /**
-   * Sign up new user
+   * Request email verification (Step 1 of signup process)
+   */
+  async requestEmailVerification(data: RequestEmailVerificationRequest): Promise<void> {
+    try {
+      const api = this.createAxiosInstance();
+      const response: AxiosResponse<ApiResponse<void>> = await api.post(
+        AUTH_ENDPOINTS.REQUEST_EMAIL_VERIFICATION,
+        data
+      );
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Failed to request email verification');
+      }
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * Verify email with OTP (Step 2 of signup process)
+   */
+  async verifyEmail(data: VerifyEmailRequest): Promise<void> {
+    try {
+      const api = this.createAxiosInstance();
+      const response: AxiosResponse<ApiResponse<void>> = await api.post(
+        AUTH_ENDPOINTS.VERIFY_EMAIL,
+        data
+      );
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Failed to verify email');
+      }
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * Resend email verification OTP
+   */
+  async resendEmailVerification(data: ResendEmailVerificationRequest): Promise<void> {
+    try {
+      const api = this.createAxiosInstance();
+      const response: AxiosResponse<ApiResponse<void>> = await api.post(
+        AUTH_ENDPOINTS.RESEND_EMAIL_VERIFICATION,
+        data
+      );
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Failed to resend email verification');
+      }
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * Sign up new user (Step 3 - requires email verification)
    */
   async signup(data: SignupRequest): Promise<AuthResponse> {
     try {
@@ -144,8 +210,8 @@ export class AuthService {
       if (response.data.success && response.data.data) {
         const authData = response.data.data;
         
-        // Store both tokens
-        TokenManager.setToken(authData.token, authData.refreshToken);
+        // Store token (backend doesn't provide refresh token)
+        TokenManager.setToken(authData.token);
         
         return authData;
       }
@@ -179,6 +245,48 @@ export class AuthService {
   }
 
   /**
+   * Verify OTP for existing user
+   */
+  async verifyOtp(data: VerifyOtpRequest): Promise<AuthResponse> {
+    try {
+      const api = this.createAxiosInstance();
+      const response: AxiosResponse<ApiResponse<AuthResponse>> = await api.post(
+        AUTH_ENDPOINTS.VERIFY_OTP,
+        data
+      );
+
+      if (response.data.success && response.data.data) {
+        const authData = response.data.data;
+        TokenManager.setToken(authData.token);
+        return authData;
+      }
+
+      throw new Error(response.data.message || 'Failed to verify OTP');
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * Resend OTP for existing user
+   */
+  async resendOtp(data: ResendOtpRequest): Promise<void> {
+    try {
+      const api = this.createAxiosInstance();
+      const response: AxiosResponse<ApiResponse<void>> = await api.post(
+        AUTH_ENDPOINTS.RESEND_OTP,
+        data
+      );
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Failed to resend OTP');
+      }
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
    * Validate current token
    */
   async validateToken(): Promise<boolean> {
@@ -194,7 +302,7 @@ export class AuthService {
       const api = this.createAxiosInstance();
       const response = await api.get(AUTH_ENDPOINTS.PROFILE);
       return response.status === 200;
-    } catch (error) {
+    } catch {
       return false;
     }
   }
@@ -218,10 +326,10 @@ export class AuthService {
   /**
    * Get user profile
    */
-  async getProfile(): Promise<any> {
+  async getProfile(): Promise<User> {
     try {
       const api = this.createAxiosInstance();
-      const response: AxiosResponse<ApiResponse<any>> = await api.get(AUTH_ENDPOINTS.PROFILE);
+      const response: AxiosResponse<ApiResponse<User>> = await api.get(AUTH_ENDPOINTS.PROFILE);
 
       if (response.data.success && response.data.data) {
         return response.data.data;
@@ -236,10 +344,10 @@ export class AuthService {
   /**
    * Update user profile
    */
-  async updateProfile(data: any): Promise<any> {
+  async updateProfile(data: Partial<User>): Promise<User> {
     try {
       const api = this.createAxiosInstance();
-      const response: AxiosResponse<ApiResponse<any>> = await api.put(AUTH_ENDPOINTS.UPDATE_PROFILE, data);
+      const response: AxiosResponse<ApiResponse<User>> = await api.put(AUTH_ENDPOINTS.UPDATE_PROFILE, data);
 
       if (response.data.success && response.data.data) {
         return response.data.data;
@@ -327,7 +435,7 @@ export class AuthService {
     if (!token) return false;
 
     const payload = TokenManager.decodeToken(token);
-    return payload?.roles?.includes(role as any) || false;
+    return payload?.role === role;
   }
 
   /**
@@ -345,14 +453,14 @@ export class AuthService {
   }
 
   /**
-   * Get current user's roles
+   * Get current user's role
    */
-  getCurrentUserRoles(): string[] {
+  getCurrentUserRole(): string | null {
     const token = TokenManager.getToken();
-    if (!token) return [];
+    if (!token) return null;
 
     const payload = TokenManager.decodeToken(token);
-    return payload?.roles || [];
+    return payload?.role || null;
   }
 
   /**

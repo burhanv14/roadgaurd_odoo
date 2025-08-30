@@ -1,12 +1,12 @@
 import { useEffect, useState, useCallback } from "react";
 import { clsx, type ClassValue } from "clsx";
-import { ChevronDown, Sun, Moon, Phone} from "lucide-react";
+import { ChevronDown, Sun, Moon, Phone, User, LogOut } from "lucide-react";
 import ReactCountryFlag from "react-country-flag";
 import { useNavigate } from "react-router-dom";
 import { Trans } from '@/components/Trans';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/useAuth';
-import { useLanguageStore } from '@/stores';
+import { useLanguageStore, type Language } from '@/stores';
 import type { ScrollState, HeaderProps } from "../types/header";
 import { NAV_LINKS, LANGUAGES } from "@/constants";
 
@@ -16,12 +16,13 @@ const cn = (...classes: ClassValue[]): string => clsx(classes);
 export function RAHeader({ className, fixed = true }: HeaderProps) {
   const [open, setOpen] = useState(false);
   const [langDropdownOpen, setLangDropdownOpen] = useState(false);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   
   // Use the language store for managing language state
   const { currentLanguage, setLanguage } = useLanguageStore();
   
   // Authentication and navigation
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
   
   // Assume these hooks are available
@@ -57,6 +58,18 @@ export function RAHeader({ className, fixed = true }: HeaderProps) {
       navigate(href);
     }
   }, [handleRoadsideAssistanceClick, navigate]);
+
+  // Profile handlers
+  const handleProfileClick = useCallback(() => {
+    navigate('/profile');
+    setProfileDropdownOpen(false);
+  }, [navigate]);
+
+  const handleLogoutClick = useCallback(async () => {
+    await logout();
+    setProfileDropdownOpen(false);
+    navigate('/');
+  }, [logout, navigate]);
 
   // Enhanced scroll detection with improved performance and animations
   const handleScroll = useCallback(() => {
@@ -149,6 +162,9 @@ export function RAHeader({ className, fixed = true }: HeaderProps) {
       if (!target.closest('[data-dropdown="language"]')) {
         setLangDropdownOpen(false);
       }
+      if (!target.closest('[data-dropdown="profile"]')) {
+        setProfileDropdownOpen(false);
+      }
     };
     
     document.addEventListener('click', handleClickOutside);
@@ -160,6 +176,7 @@ export function RAHeader({ className, fixed = true }: HeaderProps) {
     const handleRouteChange = () => {
       setOpen(false);
       setLangDropdownOpen(false);
+      setProfileDropdownOpen(false);
     };
     
     window.addEventListener('popstate', handleRouteChange);
@@ -185,12 +202,13 @@ export function RAHeader({ className, fixed = true }: HeaderProps) {
       if (e.key === 'Escape') {
         if (open) setOpen(false);
         if (langDropdownOpen) setLangDropdownOpen(false);
+        if (profileDropdownOpen) setProfileDropdownOpen(false);
       }
     };
     
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
-  }, [open, langDropdownOpen]);
+  }, [open, langDropdownOpen, profileDropdownOpen]);
 
   const headerClasses = cn(
     // Base classes with improved font
@@ -313,7 +331,7 @@ export function RAHeader({ className, fixed = true }: HeaderProps) {
                   <button
                     key={lang.code}
                     onClick={() => {
-                      setLanguage(lang.code as any);
+                      setLanguage(lang.code as Language);
                       setLangDropdownOpen(false);
                     }}
                     className={cn(
@@ -376,33 +394,115 @@ export function RAHeader({ className, fixed = true }: HeaderProps) {
             <Trans translationKey="header.support" text="24x7 Support" />
           </div>
           
-          {/* Modern Primary CTA Button */}
-          <button
-            onClick={handleGetHelpClick}
-            className={cn(
-              "group relative overflow-hidden font-semibold rounded-2xl transition-all duration-300",
-              "bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-600 hover:from-blue-700 hover:via-blue-700 hover:to-indigo-700",
-              "dark:from-blue-500 dark:via-blue-500 dark:to-indigo-500 dark:hover:from-blue-600 dark:hover:via-blue-600 dark:hover:to-indigo-600",
-              "text-white shadow-xl shadow-blue-500/25 dark:shadow-blue-400/20",
-              "hover:shadow-2xl hover:shadow-blue-500/40 dark:hover:shadow-blue-400/30",
-              "hover:scale-105 active:scale-95 hover:-translate-y-0.5",
-              "focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900",
-              // Responsive sizing
-              scrollState.isRounded 
-                ? "px-5 py-2.5 text-sm xl:text-base" 
-                : "px-6 py-3 text-base xl:text-lg",
-              // Shimmer effect on hover
-              "before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent",
-              "before:translate-x-[-100%] before:transition-transform before:duration-700",
-              "hover:before:translate-x-[100%]"
-
-            )}
-          >
-            <span className="relative z-10 flex items-center gap-2">
-              <Trans translationKey="header.getHelp" text="Get Help" />
-              <div className="w-1.5 h-1.5 bg-white rounded-full group-hover:animate-bounce" />
-            </span>
-          </button>
+          {/* Conditional Action Button - User Profile or Get Help */}
+          {isAuthenticated && user ? (
+            /* User Profile Dropdown */
+            <div className="relative" data-dropdown="profile">
+              <button
+                onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                className={cn(
+                  "group flex items-center gap-3 rounded-2xl transition-all duration-300",
+                  // Modern glassmorphism effect
+                  "bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm",
+                  "border border-gray-200/50 dark:border-gray-700/50",
+                  "hover:bg-white/80 dark:hover:bg-gray-800/80",
+                  "hover:border-gray-300/60 dark:hover:border-gray-600/60",
+                  "hover:shadow-lg hover:shadow-gray-200/30 dark:hover:shadow-gray-900/30",
+                  "hover:scale-105 active:scale-95",
+                  "focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400/50",
+                  // Responsive sizing
+                  scrollState.isRounded 
+                    ? "px-4 py-2.5 text-sm xl:text-base" 
+                    : "px-5 py-3 text-base xl:text-lg"
+                )}
+                aria-label="User Profile"
+              >
+                {/* User Avatar */}
+                <div className={cn(
+                  "flex items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-semibold shadow-sm",
+                  scrollState.isRounded ? "h-8 w-8 text-sm" : "h-9 w-9 text-base"
+                )}>
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+                
+                {/* User Name */}
+                <span className="font-medium text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300 max-w-32 truncate">
+                  {user.name}
+                </span>
+                
+                {/* Dropdown Arrow */}
+                <ChevronDown className={cn(
+                  "transition-all duration-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 text-gray-500 dark:text-gray-400",
+                  profileDropdownOpen && "rotate-180",
+                  "w-4 h-4"
+                )} />
+              </button>
+              
+              {/* Profile Dropdown Menu */}
+              {profileDropdownOpen && (
+                <div className="absolute right-0 top-full mt-3 w-64 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-200/40 dark:border-gray-700/40 py-3 z-50 animate-in slide-in-from-top-2 duration-200">
+                  {/* User Info Header */}
+                  <div className="px-4 py-3 border-b border-gray-200/30 dark:border-gray-700/30">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-center h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-semibold text-lg">
+                        {user.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-900 dark:text-white truncate">{user.name}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Menu Items */}
+                  <div className="py-2">
+                    <button
+                      onClick={handleProfileClick}
+                      className="flex items-center gap-3 w-full px-4 py-3 text-left transition-all duration-200 rounded-xl mx-2 hover:bg-gray-100/60 dark:hover:bg-gray-800/60 hover:scale-95 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
+                    >
+                      <User className="w-5 h-5" />
+                      <span className="font-medium">Profile Settings</span>
+                    </button>
+                    
+                    <button
+                      onClick={handleLogoutClick}
+                      className="flex items-center gap-3 w-full px-4 py-3 text-left transition-all duration-200 rounded-xl mx-2 hover:bg-red-50/60 dark:hover:bg-red-900/30 hover:scale-95 text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400"
+                    >
+                      <LogOut className="w-5 h-5" />
+                      <span className="font-medium">Sign Out</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Get Help Button for Non-Authenticated Users */
+            <button
+              onClick={handleGetHelpClick}
+              className={cn(
+                "group relative overflow-hidden font-semibold rounded-2xl transition-all duration-300",
+                "bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-600 hover:from-blue-700 hover:via-blue-700 hover:to-indigo-700",
+                "dark:from-blue-500 dark:via-blue-500 dark:to-indigo-500 dark:hover:from-blue-600 dark:hover:via-blue-600 dark:hover:to-indigo-600",
+                "text-white shadow-xl shadow-blue-500/25 dark:shadow-blue-400/20",
+                "hover:shadow-2xl hover:shadow-blue-500/40 dark:hover:shadow-blue-400/30",
+                "hover:scale-105 active:scale-95 hover:-translate-y-0.5",
+                "focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900",
+                // Responsive sizing
+                scrollState.isRounded 
+                  ? "px-5 py-2.5 text-sm xl:text-base" 
+                  : "px-6 py-3 text-base xl:text-lg",
+                // Shimmer effect on hover
+                "before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent",
+                "before:translate-x-[-100%] before:transition-transform before:duration-700",
+                "hover:before:translate-x-[100%]"
+              )}
+            >
+              <span className="relative z-10 flex items-center gap-2">
+                <Trans translationKey="header.getHelp" text="Get Help" />
+                <div className="w-1.5 h-1.5 bg-white rounded-full group-hover:animate-bounce" />
+              </span>
+            </button>
+          )}
         </div>
 
         {/* Enhanced Modern Mobile Menu Button */}
@@ -519,7 +619,7 @@ export function RAHeader({ className, fixed = true }: HeaderProps) {
                       <button
                         key={lang.code}
                         onClick={() => {
-                          setLanguage(lang.code as any);
+                          setLanguage(lang.code as Language);
                           setLangDropdownOpen(false);
                         }}
                         className={cn(
@@ -572,30 +672,72 @@ export function RAHeader({ className, fixed = true }: HeaderProps) {
                 <Trans translationKey="header.support" text="24x7 Support" />
               </div>
               
-              {/* Mobile Primary CTA */}
-              <button
-                className={cn(
-                  "group relative overflow-hidden rounded-2xl px-4 py-3 text-base font-semibold",
-                  "bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-600 hover:from-blue-700 hover:via-blue-700 hover:to-indigo-700",
-                  "dark:from-blue-500 dark:via-blue-500 dark:to-indigo-500 dark:hover:from-blue-600 dark:hover:via-blue-600 dark:hover:to-indigo-600",
-                  "text-white shadow-xl shadow-blue-500/25 dark:shadow-blue-400/20",
-                  "hover:shadow-2xl hover:shadow-blue-500/40 dark:hover:shadow-blue-400/30",
-                  "transition-all duration-300 hover:scale-95 active:scale-90",
-                  // Shimmer effect
-                  "before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent",
-                  "before:translate-x-[-100%] before:transition-transform before:duration-700",
-                  "hover:before:translate-x-[100%]"
-                )}
-                onClick={() => {
-                  handleGetHelpClick();
-                  setOpen(false);
-                }}
-              >
-                <span className="relative z-10 flex items-center justify-center gap-2">
-                  <Trans translationKey="header.getHelpNow" text="Get Help Now" />
-                  <div className="w-1.5 h-1.5 bg-white rounded-full group-hover:animate-bounce" />
-                </span>
-              </button>
+              {/* Conditional Mobile Action Button */}
+              {isAuthenticated && user ? (
+                /* Mobile User Profile Actions */
+                <div className="space-y-3">
+                  {/* User Info */}
+                  <div className="flex items-center gap-3 p-4 rounded-2xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50">
+                    <div className="flex items-center justify-center h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-semibold">
+                      {user.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-900 dark:text-white truncate">{user.name}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Mobile Profile Actions */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => {
+                        handleProfileClick();
+                        setOpen(false);
+                      }}
+                      className="flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all duration-300 hover:scale-95 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium"
+                    >
+                      <User className="w-4 h-4" />
+                      <span>Profile</span>
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        handleLogoutClick();
+                        setOpen(false);
+                      }}
+                      className="flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-red-200/50 dark:border-red-700/50 hover:bg-red-50/60 dark:hover:bg-red-900/30 transition-all duration-300 hover:scale-95 text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 font-medium"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* Mobile Get Help Button for Non-Authenticated Users */
+                <button
+                  className={cn(
+                    "group relative overflow-hidden rounded-2xl px-4 py-3 text-base font-semibold",
+                    "bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-600 hover:from-blue-700 hover:via-blue-700 hover:to-indigo-700",
+                    "dark:from-blue-500 dark:via-blue-500 dark:to-indigo-500 dark:hover:from-blue-600 dark:hover:via-blue-600 dark:hover:to-indigo-600",
+                    "text-white shadow-xl shadow-blue-500/25 dark:shadow-blue-400/20",
+                    "hover:shadow-2xl hover:shadow-blue-500/40 dark:hover:shadow-blue-400/30",
+                    "transition-all duration-300 hover:scale-95 active:scale-90",
+                    // Shimmer effect
+                    "before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent",
+                    "before:translate-x-[-100%] before:transition-transform before:duration-700",
+                    "hover:before:translate-x-[100%]"
+                  )}
+                  onClick={() => {
+                    handleGetHelpClick();
+                    setOpen(false);
+                  }}
+                >
+                  <span className="relative z-10 flex items-center justify-center gap-2">
+                    <Trans translationKey="header.getHelpNow" text="Get Help Now" />
+                    <div className="w-1.5 h-1.5 bg-white rounded-full group-hover:animate-bounce" />
+                  </span>
+                </button>
+              )}
             </div>
           </div>
         </nav>
@@ -611,14 +753,4 @@ export function RAHeader({ className, fixed = true }: HeaderProps) {
       )}
     </header>
   );
-}
-
-// Hook for header visibility control across different pages
-export const useHeaderVisibility = () => {
-  const [isVisible, setIsVisible] = useState(true);
-  
-  const hideHeader = useCallback(() => setIsVisible(false), []);
-  const showHeader = useCallback(() => setIsVisible(true), []);
-
-  return {isVisible, hideHeader, showHeader}
 }

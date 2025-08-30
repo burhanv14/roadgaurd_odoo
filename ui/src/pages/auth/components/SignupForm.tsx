@@ -1,173 +1,184 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useQueryState, parseAsString, parseAsInteger } from "nuqs";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Select } from "@/components/ui/select";
+import { UserRole } from "@/types/auth";
+import { useAuthStore } from "@/stores/auth.store";
 
-/** ---------- Helpers ---------- */
-
-const hashPassword = (password: string): string => {
-  let hash = 0;
-  for (let i = 0; i < password.length; i++) {
-    hash = ((hash << 5) - hash) + password.charCodeAt(i);
-    hash |= 0;
-  }
-  return Math.abs(hash).toString(36);
-};
-
-const Trans = ({ text }: { text: string }) => <>{text}</>;
-
-function genOtp(): string {
-  return String(Math.floor(100000 + Math.random() * 900000));
-}
-
-function formatSeconds(total: number): string {
-  const m = Math.floor(total / 60);
-  const s = total % 60;
-  return `${m}:${String(s).padStart(2, "0")}`;
-}
-
-/** ---------- Component ---------- */
+// User type options for signup (excluding ADMIN)
+const USER_TYPE_OPTIONS = [
+  { value: UserRole.USER, label: "Regular User" },
+  { value: UserRole.MECHANIC_OWNER, label: "Mechanic Owner" },
+  { value: UserRole.MECHANIC_EMPLOYEE, label: "Mechanic Employee" },
+];
 
 export default function SignupForm() {
-  const [name, setName] = useQueryState("name", parseAsString.withDefault(""));
-  const [username, setUsername] = useQueryState("username", parseAsString.withDefault(""));
-  const [email, setEmail] = useQueryState("email", parseAsString.withDefault(""));
-  const [phone, setPhone] = useQueryState("phone", parseAsString.withDefault(""));
-  const [passwordHash, setPasswordHash] = useQueryState("passwordHash", parseAsString.withDefault(""));
-  const [otp, setOtp] = useQueryState("otp", parseAsString.withDefault(""));
-
+  const [step, setStep] = useState(1);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [userType, setUserType] = useState<UserRole>(UserRole.USER);
   const [password, setPassword] = useState("");
-  const [generatedOtp, setGeneratedOtp] = useState<string | null>(null);
+  const [otpCode, setOtpCode] = useState("");
   const [sending, setSending] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [secondsLeft, setSecondsLeft] = useQueryState("secondsLeft", parseAsInteger.withDefault(0));
-  const [expiresAt, setExpiresAt] = useQueryState("expiresAt", parseAsInteger.withDefault(0));
-  const [expiryLeft, setExpiryLeft] = useState(0);
+  const [countdown, setCountdown] = useState(0);
 
-  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const navigate = useNavigate();
+  const { 
+    requestEmailVerification, 
+    verifyEmail, 
+    signup, 
+    error, 
+    clearError
+  } = useAuthStore();
 
-  useEffect(() => {
-    if (password) setPasswordHash(hashPassword(password));
-    else setPasswordHash("");
-  }, [password, setPasswordHash]);
+  // Email validation
+  const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const isPhoneValid = /^[0-9]{10,15}$/.test(phone.replace(/\D/g, ""));
+  const isPasswordValid = password.length >= 8;
 
-  const emailValid = useMemo(() => /\S+@\S+\.\S+/.test(email), [email]);
-  const phoneDigits = useMemo(() => (phone || "").replace(/\D/g, ""), [phone]);
-  const phoneValid = useMemo(() => /^[0-9]{10,15}$/.test(phoneDigits), [phoneDigits]);
-
-  const currentStep = useMemo(() => {
-    if (!generatedOtp) return 1;
-    const isOtpValid = expiresAt ? Date.now() < expiresAt : false;
-    if (isOtpValid && otp.replace(/\D/g, "").length === 6) return 3;
-    return 2;
-  }, [generatedOtp, expiresAt, otp]);
-
-  // Cooldown timer
-  useEffect(() => {
-    if (secondsLeft <= 0) return;
-    const t = setInterval(() => {
-      setSecondsLeft((s) => (s > 0 ? s - 1 : 0));
-    }, 1000);
-    return () => clearInterval(t);
-  }, [secondsLeft, setSecondsLeft]);
-
-  // Expiry countdown
-  useEffect(() => {
-    if (!expiresAt) return;
-
-    const tick = () => {
-      const now = Date.now();
-      const left = Math.max(0, Math.ceil((expiresAt - now) / 1000));
-      setExpiryLeft(left);
-
-      if (left === 0) {
-        setGeneratedOtp(null);
-        setOtp("");
-        setExpiresAt(0);
-        alert("OTP expired. Please resend a new OTP to continue.");
-      }
-    };
-
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, [expiresAt, setOtp, setExpiresAt]);
-
-  function setOtpAt(index: number, char: string) {
-    const otpArray = otp.split("");
-    while (otpArray.length < 6) otpArray.push("");
-    otpArray[index] = char;
-    setOtp(otpArray.join("").slice(0, 6));
-  }
-
-  async function handleGenerateOtp() {
-    if (!name || !username || !emailValid || !phoneValid) {
-      alert(
-        "Check your details: Provide name, username, a valid email, and mobile number before generating OTP."
-      );
+  // Step 1: Request email verification
+  const handleRequestEmailVerification = async () => {
+    if (!name || !isEmailValid) {
+      alert("Please provide a valid name and email address.");
       return;
     }
+
     setSending(true);
-    const code = genOtp();
-    setGeneratedOtp(code);
-    setSecondsLeft(30);
-    setExpiresAt(Date.now() + 3 * 60 * 1000);
-    alert(`OTP sent. For demo: your OTP is ${code}.`);
-    setSending(false);
-  }
+    clearError();
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (otp !== generatedOtp) {
-      alert("Invalid OTP: The code you entered is incorrect.");
+    try {
+      await requestEmailVerification({ email, name });
+      setStep(2);
+      setCountdown(30); // 30 second cooldown
+      
+      // Start countdown
+      const interval = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } catch (error) {
+      console.error("Failed to request email verification:", error);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  // Step 2: Verify email with OTP
+  const handleVerifyEmail = async () => {
+    if (!otpCode || otpCode.length !== 6) {
+      alert("Please enter the 6-digit OTP code.");
       return;
     }
+
     setSubmitting(true);
-    alert("Signup complete! Your Roadguard account has been created.");
+    clearError();
 
-    // Clear nuqs state
-    setName("");
-    setUsername("");
-    setEmail("");
-    setPhone("");
-    setPasswordHash("");
-    setOtp("");
-    setSecondsLeft(0);
-    setExpiresAt(0);
+    try {
+      await verifyEmail({ email, otpCode });
+      setStep(3);
+    } catch (error) {
+      console.error("Failed to verify email:", error);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-    // Clear local state
-    setPassword("");
-    setGeneratedOtp(null);
-    setExpiryLeft(0);
+  // Step 3: Complete signup
+  const handleSignup = async () => {
+    if (!phone || !isPhoneValid || !isPasswordValid) {
+      alert("Please provide a valid phone number and password (minimum 8 characters).");
+      return;
+    }
 
-    setSubmitting(false);
-  }
+    setSubmitting(true);
+    clearError();
+
+    try {
+      await signup({
+        name,
+        email,
+        phone,
+        password,
+        role: userType
+      });
+      
+      // Redirect to dashboard on successful signup
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Failed to signup:", error);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Resend email verification
+  const handleResendEmailVerification = async () => {
+    if (countdown > 0) return;
+    
+    setSending(true);
+    clearError();
+
+    try {
+      await requestEmailVerification({ email, name });
+      setCountdown(30);
+      
+      // Start countdown
+      const interval = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } catch (error) {
+      console.error("Failed to resend email verification:", error);
+    } finally {
+      setSending(false);
+    }
+  };
+
   return (
     <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-2xl shadow-gray-200/40 dark:shadow-black/40">
       <div className="p-8">
-        <ol className="mb-4 flex items-center gap-4 text-sm">
-          {[1, 2, 3].map((n, i) => {
-            const active = currentStep >= n;
+        {/* Progress indicator */}
+        <ol className="mb-6 flex items-center gap-4 text-sm">
+          {[1, 2, 3].map((stepNumber) => {
+            const isActive = step >= stepNumber;
+            const isCompleted = step > stepNumber;
+            
             return (
-              <li key={n} className="flex items-center gap-2">
+              <li key={stepNumber} className="flex items-center gap-2">
                 <span
-                  aria-hidden="true"
                   className={`flex h-6 w-6 items-center justify-center rounded-full border text-xs ${
-                    active
+                    isCompleted
+                      ? "border-green-500 bg-green-500 text-white"
+                      : isActive
                       ? "border-amber-500 bg-amber-500 text-black"
                       : "border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400"
                   }`}
                 >
-                  {n}
+                  {isCompleted ? "✓" : stepNumber}
                 </span>
                 <span
                   className={
-                    active
+                    isActive
                       ? "font-medium text-gray-900 dark:text-white"
                       : "text-gray-500 dark:text-gray-400"
                   }
                 >
-                  <Trans text={n === 1 ? "Details" : n === 2 ? "Verify" : "Done"} />
+                  {stepNumber === 1 ? "Details" : 
+                   stepNumber === 2 ? "Verify Email" : 
+                   "Complete"}
                 </span>
-                {i < 2 && (
+                {stepNumber < 3 && (
                   <span
                     className="mx-2 h-px w-8 bg-gray-200 dark:bg-gray-800"
                     aria-hidden="true"
@@ -178,154 +189,216 @@ export default function SignupForm() {
           })}
         </ol>
 
-        <form onSubmit={handleSubmit} className="grid gap-5 mt-8">
-          {/* Step 1 */}
-          <div className="grid gap-2">
-            <label htmlFor="name" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              <Trans text="Full name" />
-            </label>
-            <input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              disabled={currentStep > 1}
-              className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white disabled:opacity-70"
-            />
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
           </div>
+        )}
 
-          <div className="grid gap-2">
-            <label htmlFor="username" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              <Trans text="Username" />
-            </label>
-            <input
-              id="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-              disabled={currentStep > 1}
-              className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white disabled:opacity-70"
-            />
-          </div>
-
-          <div className="grid gap-2">
-            <label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              <Trans text="Email" />
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              disabled={currentStep > 1}
-              className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white disabled:opacity-70"
-            />
-          </div>
-
-          <div className="grid gap-2">
-            <label htmlFor="phone" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              <Trans text="Mobile number" />
-            </label>
-            <input
-              id="phone"
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              required
-              disabled={currentStep > 1}
-              className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white disabled:opacity-70"
-            />
-          </div>
-
-          <div className="grid gap-2">
-            <label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              <Trans text="Password" />
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={currentStep > 1}
-              className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white disabled:opacity-70"
-            />
-          </div>
-
-          {/* Step 2: OTP */}
-          <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-            <div className="grid gap-2">
-              <label htmlFor="otp-input-0" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                <Trans text="One-Time Password" />
-              </label>
-              <div className="flex items-center gap-2">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <input
-                    key={i}
-                    id={`otp-input-${i}`}
-                    ref={(el) => {
-                      otpRefs.current[i] = el;
-                    }}
-                    value={otp[i] ?? ""}
-                    onChange={(e) => {
-                      const v = e.target.value.replace(/\D/g, "");
-                      const char = v.slice(-1);
-                      setOtpAt(i, char);
-                      if (char && i < 5) otpRefs.current[i + 1]?.focus();
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Backspace" && !otp[i] && i > 0) otpRefs.current[i - 1]?.focus();
-                      if (e.key === "ArrowLeft" && i > 0) otpRefs.current[i - 1]?.focus();
-                      if (e.key === "ArrowRight" && i < 5) otpRefs.current[i + 1]?.focus();
-                    }}
-                    inputMode="numeric"
-                    pattern="[0-9]{1}"
-                    maxLength={1}
-                    disabled={!generatedOtp}
-                    className="h-12 w-10 text-center font-mono text-lg tracking-widest border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 bg-gray-50 dark:bg-gray-900 disabled:bg-gray-200 dark:disabled:bg-gray-800"
-                    aria-label={`OTP digit ${i + 1}`}
-                  />
-                ))}
-              </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400" aria-live="polite">
-                {generatedOtp ? (
-                  expiryLeft > 0 ? (
-                    <Trans text={`Expires in ${formatSeconds(expiryLeft)}.`} />
-                  ) : (
-                    <Trans text="OTP expired." />
-                  )
-                ) : (
-                  <Trans text="We'll send a code to your mobile." />
-                )}
+        {/* Step 1: Basic Details */}
+        {step === 1 && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                Enter your details
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                We'll send a verification code to your email address.
               </p>
             </div>
+
+            <div className="grid gap-4">
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Full name
+                </label>
+                <input
+                  id="name"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white"
+                  placeholder="John Doe"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Email address
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white"
+                  placeholder="you@example.com"
+                />
+                {email && !isEmailValid && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                    Please enter a valid email address
+                  </p>
+                )}
+              </div>
+            </div>
+
             <button
               type="button"
-              onClick={handleGenerateOtp}
-              disabled={sending || secondsLeft > 0}
-              className="px-4 py-2 h-12 border rounded-md text-sm font-medium transition-colors border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 hover:bg-gray-100 dark:hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleRequestEmailVerification}
+              disabled={sending || !name || !isEmailValid}
+              className="w-full px-4 py-3 rounded-md text-white font-semibold bg-amber-600 hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 disabled:bg-amber-800 disabled:cursor-not-allowed transition-colors"
             >
-              <Trans
-                text={
-                  secondsLeft > 0
-                    ? `Resend in ${secondsLeft}s`
-                    : generatedOtp
-                    ? "Resend OTP"
-                    : "Generate OTP"
-                }
-              />
+              {sending ? "Sending verification..." : "Send verification code"}
             </button>
           </div>
+        )}
 
-          <button
-            type="submit"
-            className="w-full px-4 py-3 rounded-md text-white font-semibold bg-amber-600 hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 disabled:bg-amber-800 disabled:cursor-not-allowed"
-            disabled={submitting || !generatedOtp || otp.replace(/\D/g, "").length !== 6}
-          >
-            <Trans text={submitting ? "Submitting..." : "Create Account"} />
-          </button>
-        </form>
+        {/* Step 2: Email Verification */}
+        {step === 2 && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                Verify your email
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                We've sent a 6-digit code to {email}. Please enter it below.
+              </p>
+            </div>
+
+            <div>
+              <label htmlFor="otp" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Verification code
+              </label>
+              <input
+                id="otp"
+                type="text"
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                maxLength={6}
+                required
+                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white text-center text-lg tracking-widest"
+                placeholder="000000"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={handleVerifyEmail}
+                disabled={submitting || otpCode.length !== 6}
+                className="flex-1 px-4 py-3 rounded-md text-white font-semibold bg-amber-600 hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 disabled:bg-amber-800 disabled:cursor-not-allowed transition-colors"
+              >
+                {submitting ? "Verifying..." : "Verify email"}
+              </button>
+              
+              <button
+                type="button"
+                onClick={handleResendEmailVerification}
+                disabled={sending || countdown > 0}
+                className="px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-md text-sm font-medium transition-colors bg-white dark:bg-gray-950 hover:bg-gray-100 dark:hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {countdown > 0 ? `Resend (${countdown}s)` : "Resend"}
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setStep(1)}
+              className="w-full px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+            >
+              ← Back to details
+            </button>
+          </div>
+        )}
+
+        {/* Step 3: Complete Registration */}
+        {step === 3 && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                Complete your registration
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Your email has been verified. Please provide the remaining details to complete your account.
+              </p>
+            </div>
+
+            <div className="grid gap-4">
+              <div>
+                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Phone number
+                </label>
+                <input
+                  id="phone"
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  required
+                  className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white"
+                  placeholder="+1234567890"
+                />
+                {phone && !isPhoneValid && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                    Please enter a valid phone number
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="userType" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  User type
+                </label>
+                <Select
+                  id="userType"
+                  value={userType}
+                  onChange={(e) => setUserType(e.target.value as UserRole)}
+                  options={USER_TYPE_OPTIONS}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white"
+                  placeholder="••••••••"
+                />
+                {password && !isPasswordValid && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                    Password must be at least 8 characters long
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={handleSignup}
+                disabled={submitting || !isPhoneValid || !isPasswordValid}
+                className="flex-1 px-4 py-3 rounded-md text-white font-semibold bg-amber-600 hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 disabled:bg-amber-800 disabled:cursor-not-allowed transition-colors"
+              >
+                {submitting ? "Creating account..." : "Create account"}
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setStep(2)}
+              className="w-full px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+            >
+              ← Back to verification
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
