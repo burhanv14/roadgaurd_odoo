@@ -2,11 +2,11 @@ import nodemailer from 'nodemailer';
 
 // Email transporter configuration
 const createTransporter = () => {
-  const host = process.env.EMAIL_HOST;
-  const port = parseInt(process.env.EMAIL_PORT || '587', 10);
-  const user = process.env.EMAIL_USER;
-  const pass = process.env.EMAIL_PASS;
-  const secure = process.env.EMAIL_SECURE === 'true';
+  const host = process.env['EMAIL_HOST'];
+  const port = parseInt(process.env['EMAIL_PORT'] || '587', 10);
+  const user = process.env['EMAIL_USER'];
+  const pass = process.env['EMAIL_PASS'];
+  const secure = process.env['EMAIL_SECURE'] === 'true';
 
   if (!host || !user || !pass) {
     throw new Error('Email configuration is incomplete. Please check EMAIL_HOST, EMAIL_USER, and EMAIL_PASS environment variables.');
@@ -133,7 +133,7 @@ export const sendOtpEmail = async (
 ): Promise<boolean> => {
   try {
     const transporter = createTransporter();
-    const fromEmail = process.env.EMAIL_FROM || process.env.EMAIL_USER;
+    const fromEmail = process.env['EMAIL_FROM'] || process.env['EMAIL_USER'];
     
     if (!fromEmail) {
       throw new Error('EMAIL_FROM environment variable is not set');
