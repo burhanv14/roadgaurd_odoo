@@ -397,3 +397,6 @@ export default apiService;
 
 // Export auth service
 export { authService } from './auth.service';
+
+// Export translation service
+export { translationService } from './translation.service';
