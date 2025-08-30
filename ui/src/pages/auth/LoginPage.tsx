@@ -1,145 +1,35 @@
-import { Link, useNavigate } from 'react-router-dom';
-import { useQueryState } from 'nuqs';
-import { Button } from '@/components/ui/button';
-import { Trans } from '@/components/Trans';
-import { useAuth } from '@/hooks/useAuth';
-import { useTranslation } from '@/hooks/useTranslation';
-import { parseAsEmail, parseAsEncryptedPassword, parseAsLoading } from '@/lib/parsers';
+import React from "react";
+import LoginHero from "./components/LoginHero.jsx";
+import LoginForm from "./components/LoginForm.jsx";
 
+
+// --- Main LoginPage Component ---
 export default function LoginPage() {
-  const [email, setEmail] = useQueryState('email', parseAsEmail);
-  const [password, setPassword] = useQueryState('password', parseAsEncryptedPassword.withDefault(''));
-  const [isLoading, setIsLoading] = useQueryState('loading', parseAsLoading);
-  const { login } = useAuth();
-  const navigate = useNavigate();
-
-  // Get translated placeholders
-  const { t: emailPlaceholder } = useTranslation({ 
-    key: 'login.emailPlaceholder', 
-    text: 'Email address' 
-  });
-  const { t: passwordPlaceholder } = useTranslation({ 
-    key: 'login.passwordPlaceholder', 
-    text: 'Password' 
-  });
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    if (name === 'email') {
-      setEmail(value);
-    } else if (name === 'password') {
-      setPassword(value);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    
-    try {
-      await login({
-        email: email || '',
-        password: password || ''
-      });
-      // Clear query params after successful login
-      setEmail('');
-      setPassword('');
-      setIsLoading(false);
-      navigate('/dashboard');
-    } catch (error) {
-      console.error('Login failed:', error);
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            <Trans translationKey="login.title" text="Sign in to your account" />
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            <Trans translationKey="login.or" text="Or" />{' '}
-            <Link
-              to="/signup"
-              className="font-medium text-indigo-600 hover:text-indigo-500"
-            >
-              <Trans translationKey="login.createAccount" text="create a new account" />
-            </Link>
-          </p>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm -space-y-px">
+    return (
+      <main className="bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100">
+        <section className="mx-auto w-full max-w-6xl px-4 py-12 md:py-16">
+          <div className="mb-6 text-center lg:text-left">
+            <p className="text-xs font-medium tracking-widest text-amber-600 dark:text-amber-500">Roadguard • Log in</p>
+          </div>
+          <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
+            <LoginHero />
             <div>
-              <label htmlFor="email" className="sr-only">
-                <Trans translationKey="login.emailLabel" text="Email address" />
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder={emailPlaceholder}
-                value={email || ''}
-                onChange={handleChange}
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                <Trans translationKey="login.passwordLabel" text="Password" />
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder={passwordPlaceholder}
-                value={password || ''}
-                onChange={handleChange}
-              />
+              <h1 className="mb-2 text-3xl font-semibold tracking-tight text-balance">Log in to your account</h1>
+              <p className="mb-8 text-sm text-gray-600 dark:text-gray-400">
+                Enter your credentials to access your RoadGuard dashboard.
+              </p>
+              <LoginForm />
+              <p className="mt-6 text-xs text-gray-600 dark:text-gray-400">
+                Don't have an account?{" "}
+                <a href="#" className="underline underline-offset-4 hover:text-amber-600 dark:hover:text-amber-500">
+                  Sign up
+                </a>
+                .
+              </p>
             </div>
           </div>
+        </section>
+      </main>
+    );
+  }
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <input
-                id="remember-me"
-                name="remember-me"
-                type="checkbox"
-                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-              />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
-                <Trans translationKey="login.rememberMe" text="Remember me" />
-              </label>
-            </div>
-
-            <div className="text-sm">
-              <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500">
-                <Trans translationKey="login.forgotPassword" text="Forgot your password?" />
-              </a>
-            </div>
-          </div>
-
-          <div>
-            <Button
-              type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <Trans translationKey="login.signingIn" text="Signing in..." />
-              ) : (
-                <Trans translationKey="login.signIn" text="Sign in" />
-              )}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}

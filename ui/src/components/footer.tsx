@@ -1,5 +1,6 @@
 import { FaFacebook, FaInstagram, FaLinkedin, FaYoutube, FaWhatsapp } from "react-icons/fa";
 import { Trans } from '@/components/Trans';
+import logo from "../assets/logo_odoo_2.svg";
 
 export function RAFooter() {
   return (
@@ -9,13 +10,9 @@ export function RAFooter() {
         {/* Logo + Address */}
         <div>
           <h2 className="text-2xl font-bold text-white">
-            🚗 <Trans translationKey="app.title" text="RoadGuard" />
+            <img src={logo} alt="logo" className="h-5 w-5" />
+             <Trans translationKey="app.title" text="RoadGuard" />
           </h2>
-          <p className="mt-4 text-sm leading-6">
-            <Trans translationKey="footer.address" text="123 Main Street, MG Road" /> <br />
-            <Trans translationKey="footer.city" text="Bengaluru, Karnataka - 560001" /> <br />
-            <Trans translationKey="footer.country" text="India" />
-          </p>
         </div>
 
         {/* Reach Us */}
@@ -37,15 +34,7 @@ export function RAFooter() {
             <li><a href="/about" className="hover:text-white">
               <Trans translationKey="footer.aboutUs" text="About Us" />
             </a></li>
-            <li><a href="/careers" className="hover:text-white">
-              <Trans translationKey="footer.careers" text="Careers" />
-            </a></li>
-            <li><a href="/contact" className="hover:text-white">
-              <Trans translationKey="footer.contactUs" text="Contact Us" />
-            </a></li>
-            <li><a href="/news" className="hover:text-white">
-              <Trans translationKey="footer.news" text="News" />
-            </a></li>
+           
           </ul>
         </div>
 
@@ -88,13 +77,7 @@ export function RAFooter() {
       {/* Divider */}
       <div className="border-t border-gray-700 mt-10 pt-6 flex flex-col md:flex-row items-center justify-between">
         {/* Social Icons */}
-        <div className="flex space-x-4 text-xl">
-          <a href="#" className="hover:text-white"><FaFacebook /></a>
-          <a href="#" className="hover:text-white"><FaInstagram /></a>
-          <a href="#" className="hover:text-white"><FaLinkedin /></a>
-          <a href="#" className="hover:text-white"><FaYoutube /></a>
-          <a href="#" className="hover:text-white"><FaWhatsapp /></a>
-        </div>
+       
 
         {/* Copyright */}
         <p className="text-sm text-gray-400 mt-4 md:mt-0">
