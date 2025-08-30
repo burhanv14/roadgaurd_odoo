@@ -245,16 +245,16 @@ export class WorkshopService {
   /**
    * Get detailed workshop information with services and reviews
    */
-  async getWorkshopDetails(id: string): Promise<{ success: boolean; message: string; data: { workshop: WorkshopDetails } }> {
+  async getWorkshopDetails(id: string): Promise<{ success: boolean; message: string; data: WorkshopDetails }> {
     const axiosInstance = this.createAxiosInstance();
     
     const response = await axiosInstance.get(`/workshops/${id}/details`);
-    // The backend returns data.workshop, so we need to restructure it
+    // The backend returns data directly, not data.workshop
     const backendData = response.data;
     return {
       success: backendData.success,
       message: backendData.message,
-      data: backendData.data.workshop
+      data: backendData.data
     };
   }
 

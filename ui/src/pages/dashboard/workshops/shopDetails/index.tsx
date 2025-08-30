@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, User2, Star, Send, Share2, Facebook, Twitter, Linkedin, Mail } from 'lucide-react';
+import { useParams,useNavigate } from 'react-router-dom';
+import { ArrowLeft, MapPin, User2, Star, Send} from 'lucide-react';
 import { useWorkshopDetails } from '@/hooks/useWorkshopDetails';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuthStore } from '@/stores/auth.store';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import ShopMap from '../components/shopMap';
 import { Stars } from '../components/stars';
@@ -57,9 +56,6 @@ export default function ShopDetailsPage() {
           </div>
           <div className="text-sm text-muted-foreground">
             The workshop you're looking for might not exist or has been removed.
-          </div>
-          <div className="text-xs text-muted-foreground">
-            Workshop ID: {shopId}
           </div>
           <div className="flex gap-3">
             <Button onClick={() => refetch()} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
@@ -205,9 +201,6 @@ export default function ShopDetailsPage() {
             )}
           </div>
         </div>
-                 <Button variant="outline" size="sm">
-           <Link to="/login">Login</Link>
-         </Button>
       </header>
 
       <div className="grid gap-8 lg:grid-cols-3">
@@ -230,6 +223,7 @@ export default function ShopDetailsPage() {
           {/* Description */}
           <Card>
             <CardContent className="p-6">
+              <h2 className="text-xl font-semibold mb-4">Services</h2>
               <div className="space-y-3">
                 <p className="text-muted-foreground leading-relaxed">
                   {workshop.description || 'No description available for this workshop.'}
@@ -242,8 +236,6 @@ export default function ShopDetailsPage() {
               </div>
             </CardContent>
           </Card>
-
-          
 
           {/* Customer Reviews */}
           <Card>
@@ -468,54 +460,8 @@ export default function ShopDetailsPage() {
                 <div className="text-sm text-muted-foreground">
                   {workshop.owner?.phone || 'Phone not available'}
                 </div>
-                                 <div className="text-sm text-muted-foreground">
-                   {workshop.owner?.email || 'Email not available'}
-                 </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Share Options */}
-          <Card>
-            <CardContent className="p-6">
-              <h3 className="font-semibold mb-4">Share</h3>
-              <div className="space-y-3">
-                <p className="text-xs text-muted-foreground">
-                  Share this workshop with others
-                </p>
-                <div className="flex gap-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleShare('facebook')}
-                    className="flex-1"
-                  >
-                    <Facebook className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleShare('twitter')}
-                    className="flex-1"
-                  >
-                    <Twitter className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleShare('linkedin')}
-                    className="flex-1"
-                  >
-                    <Linkedin className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleShare('email')}
-                    className="flex-1"
-                  >
-                    <Mail className="h-4 w-4" />
-                  </Button>
+                <div className="text-sm text-muted-foreground">
+                  {workshop.owner?.email || 'Email not available'}
                 </div>
               </div>
             </CardContent>
