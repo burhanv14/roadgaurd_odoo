@@ -1,9 +1,8 @@
 import React from "react"
-import { MapPin, RefreshCw, Bug } from "lucide-react"
+import { MapPin, RefreshCw } from "lucide-react"
 import Button from "./button"
 import { useCurrentLocationWithAddress } from "../hooks/useLocation"
 import LeafletMap from "./LeafletMap"
-import { locationService } from "../services/location.service"
 
 // Simple map placeholder component
 function UserLocationMap({ 
@@ -66,7 +65,6 @@ function UserLocationMap({
 // Main LocationPanel Component
 export default function LocationPanel() {
   const [radiusKm, setRadiusKm] = React.useState(3)
-  const [debugInfo, setDebugInfo] = React.useState<string>("")
   const { currentLocation, isLoading, error, refetch } = useCurrentLocationWithAddress({
     enableHighAccuracy: true,
     timeout: 15000,
@@ -82,31 +80,13 @@ export default function LocationPanel() {
     setRadiusKm(Number.parseInt(e.target.value))
   }, [])
 
-  // Test geocoding function
-  const testGeocoding = React.useCallback(async () => {
-    if (!currentLocation?.coordinates) {
-      setDebugInfo("No coordinates available for testing")
-      return
-    }
-
-    setDebugInfo("Testing geocoding...")
-    try {
-      const result = await locationService.reverseGeocode(currentLocation.coordinates)
-      setDebugInfo(`Geocoding result: ${result.address || 'No address'}`)
-      console.log('Test geocoding result:', result)
-    } catch (error) {
-      setDebugInfo(`Geocoding error: ${error}`)
-      console.error('Test geocoding error:', error)
-    }
-  }, [currentLocation?.coordinates])
-
   // Extract address from location data if available
   const getLocationDisplay = () => {
     if (error) {
       return "Location permission denied or unavailable."
     }
     if (isLoading) {
-      return "Getting your location and address..."
+      return "Getting your location..."
     }
     if (currentLocation?.address) {
       return currentLocation.address
@@ -132,15 +112,6 @@ export default function LocationPanel() {
               <h4 className="text-base md:text-lg font-semibold">Find help in your area</h4>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={testGeocoding}
-                  disabled={isLoading || !currentLocation?.coordinates}
-                  className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-50"
-                  aria-label="Test geocoding"
-                  title="Test geocoding"
-                >
-                  <Bug className="h-4 w-4" />
-                </button>
-                <button
                   onClick={() => refetch()}
                   disabled={isLoading}
                   className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-50"
@@ -153,11 +124,6 @@ export default function LocationPanel() {
             <p className="text-xs text-gray-600 dark:text-gray-400">
               {getLocationDisplay()}
             </p>
-            {debugInfo && (
-              <p className="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 p-2 rounded">
-                {debugInfo}
-              </p>
-            )}
           </div>
 
           {/* Radius control */}

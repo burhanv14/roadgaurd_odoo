@@ -199,11 +199,6 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
-
-            {/* Location Demo Section */}
-            <div className="mt-8">
-              {/* <LocationDemo /> */} {/* Commented out until component exists */}
-            </div>
           </div>
         </div>
       </main>

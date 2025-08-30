@@ -10,6 +10,8 @@ const SignupPage = lazy(() => import("@/pages/auth/SignupPage"));
 const DashboardPage = lazy(() => import("@/pages/dashboard/index"));
 const HomePage = lazy(() => import("@/pages/index"));
 const NotFoundPage = lazy(() => import("@/pages/NotFoundPage"));
+const WorkshopsPage = lazy(() => import("@/pages/dashboard/workshops/index"));
+const ShopDetailsPage = lazy(() => import("@/pages/dashboard/workshops/shopDetails/index"));
 
 export const router = createBrowserRouter([
   {
@@ -50,6 +52,22 @@ export const router = createBrowserRouter([
           <ProtectedRoute>
             <DashboardPage />
           </ProtectedRoute>
+        ),
+      },
+      {
+        path: "workshops",
+        element: (
+          // <ProtectedRoute>
+            <WorkshopsPage />
+          // </ProtectedRoute>
+        ),
+      },
+      {
+        path: "workshops/shop/:shopId",
+        element: (
+          // <ProtectedRoute>
+            <ShopDetailsPage />
+          // </ProtectedRoute>
         ),
       },
       {

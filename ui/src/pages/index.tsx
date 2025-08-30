@@ -4,6 +4,7 @@ import HeroAnimated from "../components/heroanimated"
 import LocationPanel from "../components/locationpanel"
 import Button from "../components/button"
 import { Trans } from "../components/Trans"
+import { useNavigate } from "react-router-dom"
 
 // Feature Card Component
 function FeatureCard({ title, desc, icon }: { title: string; desc: string; icon: ReactNode }) {
@@ -45,6 +46,8 @@ function StepCard({ step, title, desc }: { step: string; title: string; desc: st
 
 // Main HomePage Component
 export default function HomePage() {
+  const navigate = useNavigate()
+
   return (
     <main className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-white">
       {/* Header / Hero */}
@@ -65,10 +68,10 @@ export default function HomePage() {
             />
 
             <div className="flex flex-col sm:flex-row gap-3 md:justify-start justify-center pt-2">
-              <Button className="px-6 py-5 text-base">
+              <Button className="px-6 py-5 text-base" onClick={() => navigate('/login')}>
                 <Trans translationKey="hero.cta.get_help" text="Get Help Now" />
               </Button>
-              <Button variant="outline" className="px-6 py-5 text-base">
+              <Button variant="outline" className="px-6 py-5 text-base" onClick={() => navigate('/login')}>
                 <Trans translationKey="hero.cta.become_provider" text="Become a Provider" />
               </Button>
             </div>
@@ -221,10 +224,10 @@ export default function HomePage() {
             />
           </div>
           <div className="flex gap-3">
-            <Button className="px-6">
+            <Button className="px-6" onClick={() => navigate('/login')}>
               <Trans translationKey="cta.request_assistance" text="Request Assistance" />
             </Button>
-            <Button variant="outline" className="px-6">
+            <Button variant="outline" className="px-6" onClick={() => navigate('/login')}>
               <Trans translationKey="cta.signup_workshop" text="Sign Up Workshop" />
             </Button>
           </div>
