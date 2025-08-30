@@ -3,8 +3,13 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
+import path from 'path';
 import authRoutes from './routes/authRoutes';
 import workshopRoutes from './routes/workshopRoutes';
+import serviceRequestRoutes from './routes/serviceRequestRoutes';
+import quotationRoutes from './routes/quotationRoutes';
+import workerRoutes from './routes/workerRoutes';
+import uploadRoutes from './routes/uploadRoutes';
 
 dotenv.config();
 
@@ -52,6 +57,9 @@ const authLimiter = rateLimit({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Static file serving for uploads
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
 // Health check endpoint
 app.get('/', (_, res) => {
   res.status(200).json({
@@ -65,6 +73,10 @@ app.get('/', (_, res) => {
 // API Routes
 app.use('/auth', authLimiter, authRoutes);
 app.use('/workshops', workshopRoutes);
+app.use('/service-requests', serviceRequestRoutes);
+app.use('/quotations', quotationRoutes);
+app.use('/workers', workerRoutes);
+app.use('/upload', uploadRoutes);
 
 // 404 handler for undefined routes
 app.use('*', (req, res) => {

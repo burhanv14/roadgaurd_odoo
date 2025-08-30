@@ -139,6 +139,142 @@ export interface ICreateService {
   description: string;
 }
 
+// Service Request Status Enum
+export enum ServiceRequestStatus {
+  PENDING = 'PENDING',
+  QUOTED = 'QUOTED',
+  ACCEPTED = 'ACCEPTED',
+  IN_PROGRESS = 'IN_PROGRESS',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED'
+}
+
+// Service Request Priority Enum
+export enum ServiceRequestPriority {
+  LOW = 'LOW',
+  MEDIUM = 'MEDIUM',
+  HIGH = 'HIGH',
+  URGENT = 'URGENT'
+}
+
+// Service Request Type Enum
+export enum ServiceRequestType {
+  INSTANT_SERVICE = 'INSTANT_SERVICE',
+  PRE_BOOK_SLOTS = 'PRE_BOOK_SLOTS'
+}
+
+// Service Request interface
+export interface IServiceRequest {
+  id: string;
+  user_id: string;
+  workshop_id: string | null;
+  name: string;
+  description: string;
+  service_type: ServiceRequestType;
+  priority: ServiceRequestPriority;
+  status: ServiceRequestStatus;
+  location_address: string;
+  location_latitude: number;
+  location_longitude: number;
+  scheduled_start_time: Date | null;
+  scheduled_end_time: Date | null;
+  issue_description: string;
+  image_urls: string[];
+  assigned_worker_id: string | null;
+  estimated_completion: Date | null;
+  actual_completion: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Service Request creation payload
+export interface ICreateServiceRequest {
+  name: string;
+  description: string;
+  service_type: ServiceRequestType;
+  priority?: ServiceRequestPriority;
+  location_address: string;
+  location_latitude: number;
+  location_longitude: number;
+  scheduled_start_time?: Date;
+  scheduled_end_time?: Date;
+  issue_description: string;
+  image_urls?: string[];
+}
+
+// Service Request update payload
+export interface IUpdateServiceRequest {
+  status?: ServiceRequestStatus;
+  workshop_id?: string;
+  assigned_worker_id?: string;
+  estimated_completion?: Date;
+  actual_completion?: Date;
+}
+
+// Quotation interface
+export interface IQuotation {
+  id: string;
+  service_request_id: string;
+  workshop_id: string;
+  service_charges: number;
+  variable_cost: number;
+  spare_parts_cost: number;
+  total_amount: number;
+  notes: string | null;
+  valid_until: Date;
+  is_accepted: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Quotation creation payload
+export interface ICreateQuotation {
+  service_charges: number;
+  variable_cost: number;
+  spare_parts_cost: number;
+  notes?: string;
+  valid_until: Date;
+}
+
+// Worker interface (for workshop employees)
+export interface IWorker {
+  id: string;
+  workshop_id: string;
+  user_id: string;
+  name: string;
+  phone: string;
+  email: string;
+  specialization: string[];
+  is_available: boolean;
+  current_location_latitude: number | null;
+  current_location_longitude: number | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Worker creation payload
+export interface ICreateWorker {
+  user_id: string;
+  name: string;
+  phone: string;
+  email: string;
+  specialization: string[];
+}
+
+// Service Request Filters
+export interface IServiceRequestFilters {
+  status?: ServiceRequestStatus;
+  service_type?: ServiceRequestType;
+  priority?: ServiceRequestPriority;
+  workshop_id?: string;
+  user_id?: string;
+  assigned_worker_id?: string;
+  start_date?: Date;
+  end_date?: Date;
+  page?: number;
+  limit?: number;
+}
+
 // Review interface
 export interface IReview {
   id: string;
