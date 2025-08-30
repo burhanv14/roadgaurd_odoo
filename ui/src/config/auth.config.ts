@@ -11,19 +11,21 @@ export const AUTH_CONFIG: AuthConfig = {
 // API endpoint constants
 export const AUTH_ENDPOINTS = {
   LOGIN: "/auth/login",
-  SIGNUP: "/auth/signup", // Changed from /auth/register to match backend
+  SIGNUP: "/auth/signup",
   REQUEST_EMAIL_VERIFICATION: "/auth/request-email-verification",
   VERIFY_EMAIL: "/auth/verify-email",
   RESEND_EMAIL_VERIFICATION: "/auth/resend-email-verification",
   VERIFY_OTP: "/auth/verify-otp",
   RESEND_OTP: "/auth/resend-otp",
   LOGOUT: "/auth/logout-public", // Public logout endpoint
-  REFRESH: "/auth/refresh", // This endpoint doesn't exist in backend yet
-  PROFILE: "/auth/me", // Changed to match backend endpoint
-  UPDATE_PROFILE: "/auth/profile", // This endpoint doesn't exist in backend yet
-  FORGOT_PASSWORD: "/auth/reset-password", // This endpoint doesn't exist in backend yet
-  RESET_PASSWORD: "/auth/reset-password", // This endpoint doesn't exist in backend yet
-  DELETE_ACCOUNT: "/auth/delete-account", // This endpoint doesn't exist in backend yet
+  // Note: The following endpoints are not implemented in the backend yet
+  // They are kept for future implementation
+  REFRESH: "/auth/refresh", // TODO: Implement in backend
+  PROFILE: "/auth/me", // GET endpoint exists, PUT doesn't
+  UPDATE_PROFILE: "/auth/profile", // TODO: Implement in backend
+  FORGOT_PASSWORD: "/auth/forgot-password", // TODO: Implement in backend
+  RESET_PASSWORD: "/auth/reset-password", // TODO: Implement in backend
+  DELETE_ACCOUNT: "/auth/delete-account", // TODO: Implement in backend
 } as const;
 
 // Token configuration

@@ -400,3 +400,6 @@ export { authService } from './auth.service';
 
 // Export translation service
 export { translationService } from './translation.service';
+
+// Export workshop service
+export { workshopService } from './workshop.service';

@@ -99,6 +99,20 @@ const FALLBACK_TRANSLATIONS: Record<string, string> = {
   
   // Common
   'Translating...': 'अनुवाद हो रहा है...',
+  
+  // Location panel
+  'Location services active': 'स्थान सेवाएं सक्रिय',
+  'Interactive map • Hover pin for address': 'इंटरैक्टिव मानचित्र • पता देखने के लिए पिन पर होवर करें',
+  'Interactive Map': 'इंटरैक्टिव मानचित्र',
+  'Enable location services to view map': 'मानचित्र देखने के लिए स्थान सेवाएं सक्षम करें',
+  'Waiting for location...': 'स्थान की प्रतीक्षा कर रहा है...',
+  'Real map integration available': 'वास्तविक मानचित्र एकीकरण उपलब्ध',
+  'Find help in your area': 'अपने क्षेत्र में मदद खोजें',
+  'Search radius': 'खोज त्रिज्या',
+  'Estimated arrival': 'अनुमानित आगमन',
+  'Based on current traffic and distance': 'वर्तमान यातायात और दूरी के आधार पर',
+  'Request Assistance': 'सहायता का अनुरोध करें',
+  'Share your live location with the assigned provider once your request is accepted.': 'अपना लाइव स्थान निर्दिष्ट प्रदाता के साथ साझा करें जब आपका अनुरोध स्वीकार हो जाए।',
 };
 
 export interface TranslationRequest {

@@ -366,10 +366,49 @@ const deleteWorkshop = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
+// GET /workshops/owner/:ownerId - Get workshops by ownerId
+const getWorkshopsByOwnerId = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { ownerId } = req.params;
+
+    const workshops = await Workshop.findAll({
+      where: { ownerId },
+      include: [
+        {
+          model: User,
+          as: 'owner',
+          attributes: ['id', 'name', 'email', 'phone']
+        }
+      ]
+    });
+
+    if (!workshops.length) {
+      res.status(404).json({
+        success: true,
+        message: 'No workshops found for the given ownerId.'
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Workshops retrieved successfully.',
+      data: workshops
+    });
+  } catch (error) {
+    console.error('Get workshops by ownerId error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while retrieving workshops by ownerId.'
+    });
+  }
+};
+
 export {
   getWorkshops,
   getWorkshopById,
   createWorkshop,
   updateWorkshop,
-  deleteWorkshop
+  deleteWorkshop,
+  getWorkshopsByOwnerId
 };

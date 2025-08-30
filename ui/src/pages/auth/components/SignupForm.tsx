@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Select } from "@/components/ui/select";
 import { UserRole } from "@/types/auth";
 import { useAuthStore } from "@/stores/auth.store";
+import { useAuth } from "@/hooks/useAuth";
+import { getRoleRedirectPath } from "@/lib/role.utils";
 
 // User type options for signup (excluding ADMIN)
 const USER_TYPE_OPTIONS = [
@@ -31,6 +33,7 @@ export default function SignupForm() {
     error, 
     clearError
   } = useAuthStore();
+  const { role } = useAuth();
 
   // Email validation
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -108,14 +111,17 @@ export default function SignupForm() {
         role: userType
       });
       
-      // Redirect to dashboard on successful signup
-      navigate("/dashboard");
+      // Redirect based on user role
+      const redirectPath = getRoleRedirectPath(role);
+      navigate(redirectPath);
     } catch (error) {
       console.error("Failed to signup:", error);
     } finally {
       setSubmitting(false);
     }
   };
+
+
 
   // Resend email verification
   const handleResendEmailVerification = async () => {

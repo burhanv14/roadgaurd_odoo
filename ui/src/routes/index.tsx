@@ -2,6 +2,13 @@ import { lazy } from "react";
 import { createBrowserRouter, Outlet } from "react-router-dom";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { PublicRoute } from "@/components/auth/PublicRoute";
+import { 
+  AdminRoute, 
+  MechanicOwnerRoute, 
+  MechanicEmployeeRoute, 
+  ClientRoute 
+} from "@/components/auth/RoleBasedRoute";
+import { RoleRedirect } from "@/components/auth/RoleRedirect";
 import Layout from "@/routes/layout";
 
 // Lazy load pages for better performance
@@ -10,15 +17,22 @@ const SignupPage = lazy(() => import("@/pages/auth/SignupPage"));
 const DashboardPage = lazy(() => import("@/pages/dashboard/index"));
 const HomePage = lazy(() => import("@/pages/index"));
 const NotFoundPage = lazy(() => import("@/pages/NotFoundPage"));
+const UnauthorizedPage = lazy(() => import("@/pages/UnauthorizedPage"));
 const WorkshopsPage = lazy(() => import("@/pages/dashboard/workshops/index"));
 const ShopDetailsPage = lazy(() => import("@/pages/dashboard/workshops/shopDetails/index"));
+const ManagerShopPanelPage = lazy(() => import("@/pages/dashboard/managerPanel/index"));
+const CreateWorkshopPage = lazy(() => import("@/pages/dashboard/managerPanel/createWorkshop/index"));
+const AssignMechanicsPage = lazy(() => import("@/pages/dashboard/managerPanel/assignMechanics/index"));
+const MechanicShopPanelPage = lazy(() => import("@/pages/dashboard/mechanicShopPanel/index"));
 
 export const router = createBrowserRouter([
   {
     path: "/",
     element: (
       <Layout>
-        <Outlet />
+        <RoleRedirect>
+          <Outlet />
+        </RoleRedirect>
       </Layout>
     ),
     children: [
@@ -47,27 +61,67 @@ export const router = createBrowserRouter([
         ),
       },
       {
+        path: "unauthorized",
+        element: <UnauthorizedPage />,
+      },
+      // Admin routes
+      {
         path: "dashboard",
         element: (
-          <ProtectedRoute>
+          <AdminRoute fallbackPath="/unauthorized">
             <DashboardPage />
-          </ProtectedRoute>
+          </AdminRoute>
         ),
       },
+      // Client routes (USER role)
       {
         path: "workshops",
         element: (
-          // <ProtectedRoute>
+          <ClientRoute fallbackPath="/unauthorized">
             <WorkshopsPage />
-          // </ProtectedRoute>
+          </ClientRoute>
         ),
       },
       {
         path: "workshops/shop/:shopId",
         element: (
-          // <ProtectedRoute>
+          <ClientRoute fallbackPath="/unauthorized">
             <ShopDetailsPage />
-          // </ProtectedRoute>
+          </ClientRoute>
+        ),
+      },
+      // Mechanic Owner routes
+      {
+        path: "managerShopPanel",
+        element: (
+          <MechanicOwnerRoute fallbackPath="/unauthorized">
+            <ManagerShopPanelPage />
+          </MechanicOwnerRoute>
+        ),
+      },
+      {
+        path: "managerShopPanel/createWorkshop",
+        element: (
+          <MechanicOwnerRoute fallbackPath="/unauthorized">
+            <CreateWorkshopPage />
+          </MechanicOwnerRoute>
+        ),
+      },
+      {
+        path: "managerShopPanel/assignMechanics",
+        element: (
+          <MechanicOwnerRoute fallbackPath="/unauthorized">
+            <AssignMechanicsPage />
+          </MechanicOwnerRoute>
+        ),
+      },
+      // Mechanic Employee routes
+      {
+        path: "mechanicShopPanel",
+        element: (
+          <MechanicEmployeeRoute fallbackPath="/unauthorized">
+            <MechanicShopPanelPage />
+          </MechanicEmployeeRoute>
         ),
       },
       {

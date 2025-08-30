@@ -272,7 +272,7 @@ export function RAHeader({ className, fixed = true }: HeaderProps) {
         </a>
 
         {/* Enhanced Desktop Navigation with better spacing */}
-        <nav className="hidden lg:flex items-center gap-8 xl:gap-12" aria-label="Main">
+        <nav className="hidden lg:flex items-center gap-8 xl:gap-12 px-1" aria-label="Main">
           {NAV_LINKS.map((link) => (
             <button
               key={link.label}

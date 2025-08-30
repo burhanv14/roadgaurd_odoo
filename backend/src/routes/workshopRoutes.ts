@@ -4,7 +4,8 @@ import {
   getWorkshopById,
   createWorkshop,
   updateWorkshop,
-  deleteWorkshop
+  deleteWorkshop,
+  getWorkshopsByOwnerId
 } from '../controllers/workshopController';
 import {
   getWorkshopDetails,
@@ -20,6 +21,7 @@ const router = express.Router();
 // Public routes
 router.get('/', getWorkshops);
 router.get('/:id', getWorkshopById);
+router.get('/owner/:ownerId', getWorkshopsByOwnerId);
 
 // Workshop detail routes (public)
 router.get('/:id/details', getWorkshopDetails);

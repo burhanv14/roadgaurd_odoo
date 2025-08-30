@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { Trans } from "@/components/Trans";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/auth.store";
+import { useAuth } from "@/hooks/useAuth";
+import { getRoleRedirectPath } from "@/lib/role.utils";
 
 export default function LoginForm(): React.ReactElement {
   const [identifier, setIdentifier] = useState("");
@@ -10,6 +12,7 @@ export default function LoginForm(): React.ReactElement {
   
   const navigate = useNavigate();
   const { login, error, clearError } = useAuthStore();
+  const { role } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -24,8 +27,9 @@ export default function LoginForm(): React.ReactElement {
 
     try {
       await login({ identifier, password });
-      // Redirect to dashboard on successful login
-      navigate("/dashboard");
+      // Redirect based on user role
+      const redirectPath = getRoleRedirectPath(role);
+      navigate(redirectPath);
     } catch (error) {
       // Error is already set in the store
       console.error("Login failed:", error);

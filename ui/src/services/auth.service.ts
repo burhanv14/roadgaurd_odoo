@@ -154,6 +154,7 @@ export class AuthService {
         throw new Error(response.data.message || 'Failed to request email verification');
       }
     } catch (error) {
+      console.error('Error in requestEmailVerification:', error); // Log the error for debugging
       throw this.handleError(error);
     }
   }
@@ -224,6 +225,7 @@ export class AuthService {
 
   /**
    * Delete user account
+   * Note: This endpoint is not implemented in the backend yet
    */
   async deleteAccount(data?: DeleteAccountRequest): Promise<void> {
     try {
@@ -240,6 +242,13 @@ export class AuthService {
       // Clear tokens after successful account deletion
       TokenManager.clearTokens();
     } catch (error) {
+      // If endpoint doesn't exist (404), provide a more helpful error
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response: { status: number } };
+        if (axiosError.response.status === 404) {
+          throw new Error('Account deletion is not yet supported. Please contact support for assistance.');
+        }
+      }
       throw this.handleError(error);
     }
   }
@@ -343,6 +352,7 @@ export class AuthService {
 
   /**
    * Update user profile
+   * Note: This endpoint is not implemented in the backend yet
    */
   async updateProfile(data: Partial<User>): Promise<User> {
     try {
@@ -355,12 +365,20 @@ export class AuthService {
 
       throw new Error(response.data.message || 'Failed to update profile');
     } catch (error) {
+      // If endpoint doesn't exist (404), provide a more helpful error
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response: { status: number } };
+        if (axiosError.response.status === 404) {
+          throw new Error('Profile update is not yet supported. This feature will be available in a future update.');
+        }
+      }
       throw this.handleError(error);
     }
   }
 
   /**
    * Forgot password
+   * Note: This endpoint is not implemented in the backend yet
    */
   async forgotPassword(email: string): Promise<void> {
     try {
@@ -371,12 +389,20 @@ export class AuthService {
         throw new Error(response.data.message || 'Failed to send reset email');
       }
     } catch (error) {
+      // If endpoint doesn't exist (404), provide a more helpful error
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response: { status: number } };
+        if (axiosError.response.status === 404) {
+          throw new Error('Password reset is not yet supported. Please contact support for assistance.');
+        }
+      }
       throw this.handleError(error);
     }
   }
 
   /**
    * Reset password with token
+   * Note: This endpoint is not implemented in the backend yet
    */
   async resetPassword(resetToken: string, password: string): Promise<void> {
     try {
@@ -390,12 +416,20 @@ export class AuthService {
         throw new Error(response.data.message || 'Failed to reset password');
       }
     } catch (error) {
+      // If endpoint doesn't exist (404), provide a more helpful error
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response: { status: number } };
+        if (axiosError.response.status === 404) {
+          throw new Error('Password reset is not yet supported. Please contact support for assistance.');
+        }
+      }
       throw this.handleError(error);
     }
   }
 
   /**
    * Refresh authentication token
+   * Note: This endpoint is not implemented in the backend yet
    */
   async refreshToken(): Promise<AuthResponse> {
     try {
@@ -423,6 +457,14 @@ export class AuthService {
     } catch (error) {
       // Clear tokens on refresh failure
       TokenManager.clearTokens();
+      
+      // If endpoint doesn't exist (404), provide a more helpful error
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response: { status: number } };
+        if (axiosError.response.status === 404) {
+          throw new Error('Token refresh is not yet supported. Please log in again.');
+        }
+      }
       throw this.handleError(error);
     }
   }

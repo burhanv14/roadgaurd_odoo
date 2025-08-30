@@ -166,7 +166,11 @@ export const useLocationStore = create<LocationStore>()(
                   
                   const enrichedLocationData: LocationData = {
                     ...locationData,
-                    ...addressData,
+                    address: addressData.address,
+                    city: addressData.city,
+                    state: addressData.state,
+                    country: addressData.country,
+                    postalCode: addressData.postalCode,
                   };
 
                   set({
@@ -276,7 +280,11 @@ export const useLocationStore = create<LocationStore>()(
                     
                     const enrichedLocationData: LocationData = {
                       ...locationData,
-                      ...addressData,
+                      address: addressData.address,
+                      city: addressData.city,
+                      state: addressData.state,
+                      country: addressData.country,
+                      postalCode: addressData.postalCode,
                     };
 
                     set({
@@ -458,7 +466,11 @@ export const useLocationStore = create<LocationStore>()(
           const updatedLocation: LocationData = {
             coordinates,
             timestamp: state.currentLocation?.timestamp || Date.now(),
-            ...addressData,
+            address: addressData.address,
+            city: addressData.city,
+            state: addressData.state,
+            country: addressData.country,
+            postalCode: addressData.postalCode,
           };
 
           set({
