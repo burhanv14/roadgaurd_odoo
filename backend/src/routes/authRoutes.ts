@@ -1,5 +1,14 @@
 import express from 'express';
-import { signup, verifyOtp, login, getMe, resendOtp } from '../controllers/authController';
+import { 
+  requestEmailVerification, 
+  verifyEmail, 
+  resendEmailVerification, 
+  signup, 
+  verifyOtp, 
+  login, 
+  getMe, 
+  resendOtp 
+} from '../controllers/authController';
 import authMiddleware from '../middlewares/authMiddleware';
 import { testEmailConfiguration } from '../services/emailService';
 
@@ -29,11 +38,18 @@ router.get('/test-email', async (req, res) => {
   }
 });
 
-// Public routes
-router.post('/signup', signup);
+// Public routes - Pre-verification flow
+router.post('/request-email-verification', requestEmailVerification);
+router.post('/verify-email', verifyEmail);
+router.post('/resend-email-verification', resendEmailVerification);
+router.post('/signup', signup); // Now requires email verification
+
+// Post-registration verification routes
 router.post('/verify-otp', verifyOtp);
-router.post('/login', login);
 router.post('/resend-otp', resendOtp);
+
+// Authentication routes
+router.post('/login', login);
 
 // Protected routes
 router.get('/me', authMiddleware, getMe);

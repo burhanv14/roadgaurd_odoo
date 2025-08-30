@@ -2,14 +2,15 @@ import { DataTypes, Model, Optional } from 'sequelize';
 import { sequelize } from '../config/db';
 import { IOtp } from '../types';
 
-// OTP creation attributes (optional id, timestamps)
-interface OtpCreationAttributes extends Optional<IOtp, 'id' | 'createdAt' | 'updatedAt' | 'is_used'> {}
+// OTP creation attributes (optional id, timestamps, and optional user_id for pre-registration)
+interface OtpCreationAttributes extends Optional<IOtp, 'id' | 'createdAt' | 'updatedAt' | 'is_used' | 'user_id'> {}
 
 class Otp extends Model<IOtp, OtpCreationAttributes> implements IOtp {
   public id!: string;
-  public user_id!: string;
+  public user_id!: string | null; // Nullable for pre-registration verification
+  public email!: string; // Add email field for pre-registration verification
   public otp_code!: string;
-  public purpose!: 'VERIFICATION' | 'PASSWORD_RESET';
+  public purpose!: 'VERIFICATION' | 'PASSWORD_RESET' | 'EMAIL_VERIFICATION';
   public expires_at!: Date;
   public is_used!: boolean;
 
@@ -43,13 +44,22 @@ Otp.init({
   },
   user_id: {
     type: DataTypes.UUID,
-    allowNull: false,
+    allowNull: true, // Allow null for pre-registration verification
     references: {
       model: 'users',
       key: 'id'
     },
     onDelete: 'CASCADE',
     onUpdate: 'CASCADE'
+  },
+  email: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    validate: {
+      isEmail: {
+        msg: 'Must be a valid email address'
+      }
+    }
   },
   otp_code: {
     type: DataTypes.STRING(6),
@@ -65,7 +75,7 @@ Otp.init({
     }
   },
   purpose: {
-    type: DataTypes.ENUM('VERIFICATION', 'PASSWORD_RESET'),
+    type: DataTypes.ENUM('VERIFICATION', 'PASSWORD_RESET', 'EMAIL_VERIFICATION'),
     allowNull: false,
     defaultValue: 'VERIFICATION'
   },
@@ -100,10 +110,16 @@ Otp.init({
       fields: ['user_id']
     },
     {
+      fields: ['email']
+    },
+    {
       fields: ['otp_code']
     },
     {
       fields: ['expires_at']
+    },
+    {
+      fields: ['purpose']
     }
   ]
 });

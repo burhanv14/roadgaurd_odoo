@@ -45,7 +45,227 @@ const sendOtp = async (phone: string, email: string, otpCode: string, userName: 
   console.log('====================\n');
 };
 
-// POST /auth/signup
+// POST /auth/request-email-verification - Step 1: Request email verification before signup
+const requestEmailVerification = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email, name } = req.body;
+
+    // Validate required fields
+    if (!email || !name) {
+      res.status(400).json({
+        success: false,
+        message: 'Email and name are required.'
+      });
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      res.status(400).json({
+        success: false,
+        message: 'Invalid email format.'
+      });
+      return;
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({
+      where: { email }
+    });
+
+    if (existingUser) {
+      res.status(409).json({
+        success: false,
+        message: 'User with this email already exists.'
+      });
+      return;
+    }
+
+    // Delete any existing verification OTPs for this email
+    await Otp.destroy({
+      where: {
+        email,
+        purpose: 'EMAIL_VERIFICATION',
+        is_used: false
+      }
+    });
+
+    // Generate OTP
+    const otpCode = Otp.generateOtpCode();
+    const expiresAt = Otp.getExpiryTime(parseInt(process.env['OTP_EXPIRY_MINUTES'] || '5', 10));
+
+    // Store OTP in database (without user_id since user doesn't exist yet)
+    await Otp.create({
+      user_id: null, // No user yet
+      email,
+      otp_code: otpCode,
+      purpose: 'EMAIL_VERIFICATION',
+      expires_at: expiresAt,
+      is_used: false
+    });
+
+    // Send OTP via email
+    const expiryMinutes = parseInt(process.env['OTP_EXPIRY_MINUTES'] || '5', 10);
+    const emailSent = await sendOtpEmail(email, name, otpCode, expiryMinutes);
+    
+    if (emailSent) {
+      console.log(`📧 Email verification OTP sent to ${email}`);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Email verification OTP sent successfully. Please check your email and verify your email address.',
+      data: {
+        email,
+        name
+      }
+    });
+
+  } catch (error) {
+    console.error('Request email verification error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error during email verification request.'
+    });
+  }
+};
+
+// POST /auth/verify-email - Step 2: Verify email with OTP
+const verifyEmail = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email, otpCode } = req.body;
+
+    // Validate required fields
+    if (!email || !otpCode) {
+      res.status(400).json({
+        success: false,
+        message: 'Email and OTP code are required.'
+      });
+      return;
+    }
+
+    // Find valid OTP for email verification
+    const otp = await Otp.findOne({
+      where: {
+        email,
+        otp_code: otpCode,
+        purpose: 'EMAIL_VERIFICATION',
+        is_used: false
+      }
+    });
+
+    if (!otp) {
+      res.status(400).json({
+        success: false,
+        message: 'Invalid OTP code.'
+      });
+      return;
+    }
+
+    // Check if OTP is expired
+    if (otp.isExpired()) {
+      await otp.destroy();
+      res.status(400).json({
+        success: false,
+        message: 'OTP has expired. Please request a new one.'
+      });
+      return;
+    }
+
+    // Mark OTP as used (keep it for signup verification)
+    await otp.update({ is_used: true });
+
+    res.status(200).json({
+      success: true,
+      message: 'Email verified successfully. You can now proceed with registration.',
+      data: {
+        email,
+        is_email_verified: true
+      }
+    });
+
+  } catch (error) {
+    console.error('Verify email error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error during email verification.'
+    });
+  }
+};
+
+// POST /auth/resend-email-verification - Resend email verification OTP
+const resendEmailVerification = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email, name } = req.body;
+
+    // Validate required fields
+    if (!email || !name) {
+      res.status(400).json({
+        success: false,
+        message: 'Email and name are required.'
+      });
+      return;
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({
+      where: { email }
+    });
+
+    if (existingUser) {
+      res.status(409).json({
+        success: false,
+        message: 'User with this email already exists.'
+      });
+      return;
+    }
+
+    // Delete existing OTPs
+    await Otp.destroy({
+      where: {
+        email,
+        purpose: 'EMAIL_VERIFICATION'
+      }
+    });
+
+    // Generate new OTP
+    const otpCode = Otp.generateOtpCode();
+    const expiresAt = Otp.getExpiryTime(parseInt(process.env['OTP_EXPIRY_MINUTES'] || '5', 10));
+
+    // Store new OTP
+    await Otp.create({
+      user_id: null,
+      email,
+      otp_code: otpCode,
+      purpose: 'EMAIL_VERIFICATION',
+      expires_at: expiresAt,
+      is_used: false
+    });
+
+    // Send OTP
+    const expiryMinutes = parseInt(process.env['OTP_EXPIRY_MINUTES'] || '5', 10);
+    await sendOtpEmail(email, name, otpCode, expiryMinutes);
+
+    res.status(200).json({
+      success: true,
+      message: 'Email verification OTP resent successfully.',
+      data: {
+        email,
+        name
+      }
+    });
+
+  } catch (error) {
+    console.error('Resend email verification error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error during resending email verification.'
+    });
+  }
+};
+
+// POST /auth/signup - Step 3: Register user (requires email verification)
 const signup = async (req: Request, res: Response): Promise<void> => {
   try {
     const { name, email, phone, password, role }: ICreateUser = req.body;
@@ -87,36 +307,49 @@ const signup = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Create user with is_verified = false
+    // CRITICAL: Check if email has been verified
+    const verifiedEmailOtp = await Otp.findOne({
+      where: {
+        email,
+        purpose: 'EMAIL_VERIFICATION',
+        is_used: true // Must be used (verified)
+      }
+    });
+
+    if (!verifiedEmailOtp) {
+      res.status(400).json({
+        success: false,
+        message: 'Please verify your email address before registering. Use /auth/request-email-verification first.'
+      });
+      return;
+    }
+
+    // Create user with is_verified = true (since email is already verified)
     const user = await User.create({
       name,
       email,
       phone,
       password,
       role: role || UserRole.USER,
-      is_verified: false
+      is_verified: true // User is verified since email was verified
     });
 
-    // Generate OTP
-    const otpCode = Otp.generateOtpCode();
-    const expiresAt = Otp.getExpiryTime(parseInt(process.env['OTP_EXPIRY_MINUTES'] || '5', 10));
-
-    // Store OTP in database
-    await Otp.create({
-      user_id: user.id,
-      otp_code: otpCode,
-      purpose: 'VERIFICATION',
-      expires_at: expiresAt,
-      is_used: false
+    // Clean up verification OTP (no longer needed)
+    await Otp.destroy({
+      where: {
+        email,
+        purpose: 'EMAIL_VERIFICATION'
+      }
     });
 
-    // Send OTP via email
-    await sendOtp(phone, email, otpCode, name);
+    // Generate JWT token immediately
+    const token = generateToken(user);
 
     res.status(201).json({
       success: true,
-      message: 'User registered successfully. Please verify your account with the OTP sent to your email and phone.',
+      message: 'User registered successfully.',
       data: {
+        token,
         user: {
           id: user.id,
           name: user.name,
@@ -409,6 +642,7 @@ const resendOtp = async (req: Request, res: Response): Promise<void> => {
     // Store new OTP in database
     await Otp.create({
       user_id: user.id,
+      email: user.email,
       otp_code: otpCode,
       purpose: 'VERIFICATION',
       expires_at: expiresAt,
@@ -433,6 +667,9 @@ const resendOtp = async (req: Request, res: Response): Promise<void> => {
 };
 
 export {
+  requestEmailVerification,
+  verifyEmail,
+  resendEmailVerification,
   signup,
   verifyOtp,
   login,
