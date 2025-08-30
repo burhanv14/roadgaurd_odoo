@@ -52,11 +52,9 @@ const getWorkshopDetails = async (req: Request, res: Response): Promise<void> =>
       success: true,
       message: 'Workshop details retrieved successfully.',
       data: {
-        workshop: {
-          ...workshop.toJSON(),
-          averageRating: Number(averageRating.toFixed(1)),
-          totalReviews: reviews.length
-        }
+        ...workshop.toJSON(),
+        averageRating: Number(averageRating.toFixed(1)),
+        totalReviews: reviews.length
       }
     });
 
@@ -92,13 +90,7 @@ const getWorkshopServices = async (req: Request, res: Response): Promise<void> =
     res.status(200).json({
       success: true,
       message: 'Workshop services retrieved successfully.',
-      data: {
-        services,
-        workshop: {
-          id: workshop.id,
-          name: workshop.name
-        }
-      }
+      data: services
     });
 
   } catch (error) {
@@ -160,25 +152,7 @@ const getWorkshopReviews = async (req: Request, res: Response): Promise<void> =>
     res.status(200).json({
       success: true,
       message: 'Workshop reviews retrieved successfully.',
-      data: {
-        reviews,
-        workshop: {
-          id: workshop.id,
-          name: workshop.name
-        },
-        statistics: {
-          averageRating: Number(averageRating.toFixed(1)),
-          totalReviews: totalCount
-        },
-        pagination: {
-          currentPage: Number(page),
-          totalPages,
-          totalCount,
-          limit: Number(limit),
-          hasNextPage,
-          hasPreviousPage
-        }
-      }
+      data: reviews
     });
 
   } catch (error) {

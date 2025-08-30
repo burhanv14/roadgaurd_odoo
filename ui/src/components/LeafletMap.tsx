@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -33,15 +33,22 @@ const LeafletMap: React.FC<LeafletMapProps> = ({
   const markerRef = useRef<L.Marker | null>(null);
   const circleRef = useRef<L.Circle | null>(null);
 
-  // Memoize the coordinates to prevent unnecessary re-renders
-  const coordinates = useMemo(() => ({ latitude, longitude }), [latitude, longitude]);
+  // Validate coordinates
+  const validLatitude = typeof latitude === 'number' && !isNaN(latitude) ? latitude : 40.7128;
+  const validLongitude = typeof longitude === 'number' && !isNaN(longitude) ? longitude : -74.0060;
 
   // Initialize map only once
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
+    // Clear any existing map instance
+    const container = mapRef.current as any;
+    if (container._leaflet_id) {
+      container._leaflet_id = undefined;
+    }
+
     // Initialize the map
-    const map = L.map(mapRef.current).setView([latitude, longitude], 13);
+    const map = L.map(mapRef.current).setView([validLatitude, validLongitude], 13);
 
     // Add tile layer
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -54,6 +61,10 @@ const LeafletMap: React.FC<LeafletMapProps> = ({
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
+      }
+      if (mapRef.current) {
+        const container = mapRef.current as any;
+        container._leaflet_id = undefined;
       }
     };
   }, []); // Empty dependency array - only run once
@@ -75,7 +86,7 @@ const LeafletMap: React.FC<LeafletMapProps> = ({
     }
 
     // Add marker with tooltip
-    const marker = L.marker([latitude, longitude], { icon: DefaultIcon })
+    const marker = L.marker([validLatitude, validLongitude], { icon: DefaultIcon })
       .addTo(map);
 
     if (address) {
@@ -88,7 +99,7 @@ const LeafletMap: React.FC<LeafletMapProps> = ({
     }
 
     // Add radius circle
-    const circle = L.circle([latitude, longitude], {
+    const circle = L.circle([validLatitude, validLongitude], {
       color: '#2563eb',
       fillColor: '#2563eb',
       fillOpacity: 0.1,
@@ -104,7 +115,7 @@ const LeafletMap: React.FC<LeafletMapProps> = ({
 
     markerRef.current = marker;
     circleRef.current = circle;
-  }, [latitude, longitude, address, radiusMeters]);
+  }, [validLatitude, validLongitude, address, radiusMeters]);
 
   // Update marker and circle when dependencies change
   useEffect(() => {

@@ -109,6 +109,18 @@ export interface CreateReviewRequest {
   comment: string;
 }
 
+export interface Worker {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  specialization: string;
+  isAvailable: boolean;
+  workshopId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 /**
  * Workshop Service
  * Handles all workshop-related API calls
@@ -171,7 +183,7 @@ export class WorkshopService {
   /**
    * Get workshop by ID
    */
-  async getWorkshopById(id: string): Promise<{ success: boolean; message: string; data: Workshop }> {
+  async getWorkshopById(id: string): Promise<{ success: boolean; message: string; data: { workshop: Workshop } }> {
     const axiosInstance = this.createAxiosInstance();
     
     const response = await axiosInstance.get(`/workshops/${id}`);
@@ -191,7 +203,7 @@ export class WorkshopService {
   /**
    * Create a new workshop
    */
-  async createWorkshop(workshopData: CreateWorkshopRequest): Promise<{ success: boolean; message: string; data: Workshop }> {
+  async createWorkshop(workshopData: CreateWorkshopRequest): Promise<{ success: boolean; message: string; data: { workshop: Workshop } }> {
     const axiosInstance = this.createAxiosInstance();
     
     const response = await axiosInstance.post('/workshops', workshopData);
@@ -201,7 +213,7 @@ export class WorkshopService {
   /**
    * Update a workshop
    */
-  async updateWorkshop(id: string, workshopData: Partial<CreateWorkshopRequest>): Promise<{ success: boolean; message: string; data: Workshop }> {
+  async updateWorkshop(id: string, workshopData: Partial<CreateWorkshopRequest>): Promise<{ success: boolean; message: string; data: { workshop: Workshop } }> {
     const axiosInstance = this.createAxiosInstance();
     
     const response = await axiosInstance.put(`/workshops/${id}`, workshopData);
@@ -221,7 +233,7 @@ export class WorkshopService {
   /**
    * Get detailed workshop information with services and reviews
    */
-  async getWorkshopDetails(id: string): Promise<{ success: boolean; message: string; data: WorkshopDetails }> {
+  async getWorkshopDetails(id: string): Promise<{ success: boolean; message: string; data: { workshop: WorkshopDetails } }> {
     const axiosInstance = this.createAxiosInstance();
     
     const response = await axiosInstance.get(`/workshops/${id}/details`);
@@ -265,6 +277,16 @@ export class WorkshopService {
     const axiosInstance = this.createAxiosInstance();
     
     const response = await axiosInstance.post(`/workshops/${id}/reviews`, reviewData);
+    return response.data;
+  }
+
+  /**
+   * Get workers associated with a workshop (requires authentication)
+   */
+  async getWorkshopWorkers(workshopId: string): Promise<{ success: boolean; message: string; data: Worker[] }> {
+    const axiosInstance = this.createAxiosInstance();
+    
+    const response = await axiosInstance.get(`/workers/workshop/${workshopId}`);
     return response.data;
   }
 }

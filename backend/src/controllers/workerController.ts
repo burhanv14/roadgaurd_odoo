@@ -127,6 +127,7 @@ class WorkerController {
     try {
       const userId = req.user?.userId;
       const userRole = req.user?.role;
+      const { id: workshopId } = req.params;
 
       if (!userId) {
         res.status(401).json({
@@ -136,18 +137,17 @@ class WorkerController {
         return;
       }
 
-      // Only workshop owners can view their workers
-      if (userRole !== UserRole.MECHANIC_OWNER && userRole !== UserRole.MECHANIC_EMPLOYEE && userRole !== UserRole.ADMIN) {
-        res.status(403).json({
+      if (!workshopId) {
+        res.status(400).json({
           success: false,
-          message: 'Access denied'
+          message: 'Workshop ID is required'
         } as IApiResponse);
         return;
       }
 
-      // Find user's workshop
-      const workshop = await Workshop.findOne({ where: { ownerId: userId } });
-      if (!workshop && userRole !== UserRole.ADMIN) {
+      // Check if the workshop exists
+      const workshop = await Workshop.findByPk(workshopId);
+      if (!workshop) {
         res.status(404).json({
           success: false,
           message: 'Workshop not found'
@@ -155,7 +155,20 @@ class WorkerController {
         return;
       }
 
-      const workshopId = workshop?.id || req.params['workshop_id']; // Admin can specify workshop_id
+      // Authorization check: only workshop owner, employees, or admin can view workers
+      const canView = (
+        userRole === UserRole.ADMIN ||
+        workshop.ownerId === userId ||
+        userRole === UserRole.MECHANIC_EMPLOYEE
+      );
+
+      if (!canView) {
+        res.status(403).json({
+          success: false,
+          message: 'Access denied'
+        } as IApiResponse);
+        return;
+      }
 
       // Get workers
       const workers = await Worker.findAll({
@@ -166,10 +179,24 @@ class WorkerController {
         order: [['createdAt', 'DESC']]
       });
 
+      // Transform worker data to match frontend expectations (camelCase)
+      const transformedWorkers = workers.map(worker => ({
+        id: worker.id,
+        name: worker.name,
+        email: worker.email,
+        phone: worker.phone,
+        specialization: Array.isArray(worker.specialization) ? worker.specialization.join(', ') : (worker.specialization || ''),
+        isAvailable: worker.is_available,
+        workshopId: worker.workshop_id,
+        createdAt: worker.createdAt,
+        updatedAt: worker.updatedAt,
+        user: worker.get('user')
+      }));
+
       res.json({
         success: true,
         message: 'Workers retrieved successfully',
-        data: workers
+        data: transformedWorkers
       } as IApiResponse);
     } catch (error: any) {
       console.error('Error getting workers:', error);

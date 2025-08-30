@@ -9,7 +9,7 @@ router.use(authenticateToken);
 
 // Worker routes
 router.post('/', WorkerController.createWorker);
-router.get('/workshop/my-workers', WorkerController.getWorkshopWorkers);
+router.get('/workshop/:id', WorkerController.getWorkshopWorkers);
 router.get('/:id', WorkerController.getWorkerById);
 router.patch('/:id', WorkerController.updateWorker);
 router.patch('/:id/availability', WorkerController.updateWorkerAvailability);

@@ -80,12 +80,6 @@ const ManagerShopPanel: React.FC = () => {
                 Create Workshop
               </Link>
             </Button>
-            <Button asChild variant="outline" className="flex items-center gap-2">
-              <Link to="/managerShopPanel/assignMechanics" className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                Assign Mechanics
-              </Link>
-            </Button>
           </div>
         </div>
       </div>
@@ -228,19 +222,12 @@ const ManagerShopPanel: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <Button asChild size="sm" variant="outline">
                             <Link 
-                              to={`/workshops/shop/${workshop.id}`} 
+                              to={`/managerShopPanel/workshops/${workshop.id}`} 
                               className="flex items-center gap-2"
                             >
                               <Eye className="h-4 w-4" />
                               View
                             </Link>
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => {/* TODO: Implement edit functionality */}}
-                          >
-                            <Edit className="h-4 w-4" />
                           </Button>
                           <Button 
                             size="sm" 

@@ -23,6 +23,7 @@ const ShopDetailsPage = lazy(() => import("@/pages/dashboard/workshops/shopDetai
 const ManagerShopPanelPage = lazy(() => import("@/pages/dashboard/managerPanel/index"));
 const CreateWorkshopPage = lazy(() => import("@/pages/dashboard/managerPanel/createWorkshop/index"));
 const AssignMechanicsPage = lazy(() => import("@/pages/dashboard/managerPanel/assignMechanics/index"));
+const WorkshopMechDetailsPage = lazy(() => import("@/pages/dashboard/managerPanel/workshop-mechDetails/index"));
 const MechanicShopPanelPage = lazy(() => import("@/pages/dashboard/mechanicShopPanel/index"));
 
 export const router = createBrowserRouter([
@@ -112,6 +113,14 @@ export const router = createBrowserRouter([
         element: (
           <MechanicOwnerRoute fallbackPath="/unauthorized">
             <AssignMechanicsPage />
+          </MechanicOwnerRoute>
+        ),
+      },
+      {
+        path: "managerShopPanel/workshops/:workshopId",
+        element: (
+          <MechanicOwnerRoute fallbackPath="/unauthorized">
+            <WorkshopMechDetailsPage />
           </MechanicOwnerRoute>
         ),
       },
