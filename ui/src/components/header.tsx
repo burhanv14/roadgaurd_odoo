@@ -174,34 +174,27 @@ export function RAHeader({ className, fixed = true }: HeaderProps) {
         <a 
           href="/" 
           className="flex items-center gap-2 sm:gap-3 group" 
-          aria-label="ReadyAssist Home"
+          aria-label="RoadGuard"
         >
-          <span
-            className={cn(
-              "inline-flex items-center justify-center rounded-lg transition-all duration-300 group-hover:scale-110",
-              // THEME CHANGE: Replaced yellow with blue
-              "bg-blue-600 dark:bg-blue-500",
+            <img
+              src="/src/assets/logo_odoo_2.svg" // <-- update with your logo path
+              alt="RoadGuard Logo"
+              className={cn(
+              "transition-all duration-300 group-hover:scale-110 rounded-full object-contain",
               scrollState.isRounded 
-                ? "h-6 w-6 sm:h-7 sm:w-7" 
-                : "h-7 w-7 sm:h-8 sm:w-8 lg:h-9 lg:w-9",
+                 ? "h-8 w-8 sm:h-9 sm:w-9" 
+      : "h-10 w-10 sm:h-12 sm:w-12 lg:h-14 lg:w-14",
               scrollState.isScrolled && "shadow-[0_0_0_1px_rgba(0,0,0,0.1)]"
             )}
-            aria-hidden="true"
-          >
-            <span className={cn(
-              "rounded-sm bg-black dark:bg-white transition-all duration-300",
-              scrollState.isRounded 
-                ? "h-2.5 w-2.5 sm:h-3 sm:w-3" 
-                : "h-3 w-3 sm:h-4 sm:w-4"
-            )} />
-          </span>
+           />
+          {/* </span> */}
           <span className={cn(
             "font-bold tracking-tight text-foreground transition-all duration-300 select-none",
             scrollState.isRounded 
               ? "text-sm sm:text-base" 
               : "text-base sm:text-lg lg:text-xl"
           )}>
-            ReadyAssist
+            RoadGuard
           </span>
         </a>
 
@@ -240,7 +233,7 @@ export function RAHeader({ className, fixed = true }: HeaderProps) {
             )} 
             aria-label="Call 24x7 Support"
           >
-            24×7 Support
+            24x7 Support
           </a>
           <button
             className={cn(
@@ -342,13 +335,13 @@ export function RAHeader({ className, fixed = true }: HeaderProps) {
               )}
               onClick={() => setOpen(false)}
             >
-              📞 24×7 Support
+              📞 24x7 Support
             </a>
             <button
               className={cn(
                 "rounded-xl px-4 py-3 text-base font-semibold",
                 // THEME CHANGE: Replaced yellow with blue and refactored from inline style
-                "bg-blue-600 dark:bg-blue-500 text-white",
+                "bg-black dark:bg-white text-white",
                 "transition-all duration-200 hover:opacity-90 active:scale-98"
               )}
               onClick={() => setOpen(false)}
