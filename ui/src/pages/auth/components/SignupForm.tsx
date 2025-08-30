@@ -1,59 +1,165 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
-// --- Mock/Helper Components & Functions ---
-// In a real app, these would be in separate files.
+/** ---------- Minimal nuqs-like parser utilities ---------- */
 
+interface ParserOptions<T = any> {
+  parse?: (value: string) => T;
+  serialize?: (value: T) => string;
+  defaultValue: T;
+}
+
+const createParser = <T,>(options: ParserOptions<T>) => ({
+  parse: options.parse ?? ((value: string) => value as unknown as T),
+  serialize: options.serialize ?? ((value: T) => String(value)),
+  defaultValue: options.defaultValue,
+});
+
+const parseAsString = createParser<string>({ defaultValue: "" });
+const parseAsInteger = createParser<number>({
+  parse: (value: string) => {
+    const n = parseInt(value, 10);
+    return Number.isFinite(n) ? n : 0;
+  },
+  serialize: (value: number) => String(value),
+  defaultValue: 0,
+});
+
+/** WARNING: even hashed passwords in URLs can leak via logs/referrers. */
+const parseAsEncryptedPassword = createParser<string>({
+  parse: (value: string) => value,
+  serialize: (value: string) => value ?? "",
+  defaultValue: "",
+});
+
+/** ---------- Fixed mock of nuqs' useQueryState ---------- */
 /**
- * Mock Trans component to make the example runnable.
- * It simply renders the default text.
+ * Syncs a single query param with React state.
+ * - Reads initial value from URL using parser.
+ * - Writes on set (replaceState).
+ * - Removes param when equal to defaultValue.
+ * - Listens to popstate to stay in sync with back/forward.
  */
-const Trans: React.FC<{ translationKey: string; text: string }> = ({ text }) => {
-  return <>{text}</>;
+function useQueryState<T>(
+  key: string,
+  parser: ReturnType<typeof createParser<T>>
+) {
+  // Read from current URL
+  const readFromURL = (): T => {
+    const sp = new URLSearchParams(window.location.search);
+    const raw = sp.get(key);
+    return raw !== null ? parser.parse(raw) : parser.defaultValue;
+  };
+
+  const [value, setValue] = useState<T>(() => {
+    try {
+      return typeof window !== "undefined" ? readFromURL() : parser.defaultValue;
+    } catch {
+      return parser.defaultValue;
+    }
+  });
+
+  // Keep state in sync when user navigates with back/forward
+  useEffect(() => {
+    const onPopState = () => {
+      try {
+        setValue(readFromURL());
+      } catch {
+        // ignore
+      }
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+
+  // Single place to write to URL
+  const writeToURL = (next: T) => {
+    const url = new URL(window.location.href);
+    const sp = url.searchParams;
+
+    // remove when default to keep URL clean
+    const isDefault =
+      (typeof next === "string" && typeof parser.defaultValue === "string"
+        ? next === (parser.defaultValue as unknown as string)
+        : JSON.stringify(next) === JSON.stringify(parser.defaultValue));
+
+    if (isDefault || next === ("" as unknown as T) || next === (null as unknown as T)) {
+      sp.delete(key);
+    } else {
+      sp.set(key, parser.serialize(next));
+    }
+
+    // Keep hash/path; avoid history spam
+    const newUrl = `${url.pathname}?${sp.toString()}${url.hash}`;
+    window.history.replaceState(null, "", newUrl);
+  };
+
+  // Setter that supports both next value and updater fn
+  const setQueryValue = (next: React.SetStateAction<T>) => {
+    setValue((prev) => {
+      const resolved = typeof next === "function" ? (next as (p: T) => T)(prev) : next;
+      try {
+        writeToURL(resolved);
+      } catch {
+        // ignore URL write errors
+      }
+      return resolved;
+    });
+  };
+
+  return [value, setQueryValue] as const;
+}
+
+/** ---------- Helpers you already had ---------- */
+
+const hashPassword = (password: string): string => {
+  let hash = 0;
+  for (let i = 0; i < password.length; i++) {
+    hash = ((hash << 5) - hash) + password.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash).toString(36);
 };
 
-/**
- * Generates a random 6-digit OTP.
- * @returns A string representing the 6-digit code.
- */
+const Trans = ({ text }: { text: string }) => <>{text}</>;
+
 function genOtp(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
-/**
- * Formats a total number of seconds into a m:ss string.
- * @param total - The total seconds.
- * @returns A formatted string like "2:59".
- */
 function formatSeconds(total: number): string {
   const m = Math.floor(total / 60);
   const s = total % 60;
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-// --- Main SignupForm Component ---
+/** ---------- Your component (unchanged logic, now URL-synced) ---------- */
 
 export default function SignupForm() {
-  // Using React's useState for form state management
-  const [name, setName] = useState('');
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [otp, setOtp] = useState('');
-  
-  // Local state for OTP functionality
+  const [name, setName] = useQueryState("name", parseAsString);
+  const [username, setUsername] = useQueryState("username", parseAsString);
+  const [email, setEmail] = useQueryState("email", parseAsString);
+  const [phone, setPhone] = useQueryState("phone", parseAsString);
+  const [passwordHash, setPasswordHash] = useQueryState("passwordHash", parseAsEncryptedPassword);
+  const [otp, setOtp] = useQueryState("otp", parseAsString);
+
+  const [password, setPassword] = useState("");
   const [generatedOtp, setGeneratedOtp] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [secondsLeft, setSecondsLeft] = useState(0);
-  const [expiresAt, setExpiresAt] = useState<number | null>(null);
+  const [secondsLeft, setSecondsLeft] = useQueryState("secondsLeft", parseAsInteger);
+  const [expiresAt, setExpiresAt] = useQueryState("expiresAt", parseAsInteger);
   const [expiryLeft, setExpiryLeft] = useState(0);
-  
+
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Memoized calculations for validation and step logic
+  useEffect(() => {
+    if (password) setPasswordHash(hashPassword(password));
+    else setPasswordHash(""); // keep URL tidy when cleared
+  }, [password, setPasswordHash]);
+
   const emailValid = useMemo(() => /\S+@\S+\.\S+/.test(email), [email]);
-  const phoneDigits = useMemo(() => phone.replace(/\D/g, ""), [phone]);
+  const phoneDigits = useMemo(() => (phone || "").replace(/\D/g, ""), [phone]);
   const phoneValid = useMemo(() => /^[0-9]{10,15}$/.test(phoneDigits), [phoneDigits]);
 
   const currentStep = useMemo(() => {
@@ -63,19 +169,19 @@ export default function SignupForm() {
     return 2;
   }, [generatedOtp, expiresAt, otp]);
 
-  // Timer for the "Resend OTP" button cooldown
+  // Cooldown timer
   useEffect(() => {
     if (secondsLeft <= 0) return;
-    const timer = setInterval(() => {
+    const t = setInterval(() => {
       setSecondsLeft((s) => (s > 0 ? s - 1 : 0));
     }, 1000);
-    return () => clearInterval(timer);
-  }, [secondsLeft]);
+    return () => clearInterval(t);
+  }, [secondsLeft, setSecondsLeft]);
 
-  // Timer for OTP expiry countdown
+  // Expiry countdown
   useEffect(() => {
     if (!expiresAt) return;
-    
+
     const tick = () => {
       const now = Date.now();
       const left = Math.max(0, Math.ceil((expiresAt - now) / 1000));
@@ -84,49 +190,40 @@ export default function SignupForm() {
       if (left === 0) {
         setGeneratedOtp(null);
         setOtp("");
-        setExpiresAt(null);
-        // NOTE: In a real app, use a toast notification instead of alert.
+        setExpiresAt(0);
         alert("OTP expired. Please resend a new OTP to continue.");
       }
     };
 
-    tick(); // Run once immediately
-    const interval = setInterval(tick, 1000);
-    return () => clearInterval(interval);
-  }, [expiresAt]);
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [expiresAt, setOtp, setExpiresAt]);
 
-  /**
-   * Updates the OTP string at a specific index.
-   */
   function setOtpAt(index: number, char: string) {
-    const otpArray = otp.split('');
-    // Ensure array is long enough
-    while (otpArray.length < 6) otpArray.push('');
+    const otpArray = otp.split("");
+    while (otpArray.length < 6) otpArray.push("");
     otpArray[index] = char;
     setOtp(otpArray.join("").slice(0, 6));
   }
 
-  /**
-   * Handles the logic for generating and sending an OTP.
-   */
   async function handleGenerateOtp() {
     if (!name || !username || !emailValid || !phoneValid) {
-      alert("Check your details: Provide name, username, a valid email, and mobile number before generating OTP.");
+      alert(
+        "Check your details: Provide name, username, a valid email, and mobile number before generating OTP."
+      );
       return;
     }
     setSending(true);
     const code = genOtp();
     setGeneratedOtp(code);
-    setSecondsLeft(30); // 30-second resend cooldown
-    setExpiresAt(Date.now() + 3 * 60 * 1000); // 3-minute expiry
+    setSecondsLeft(30);
+    setExpiresAt(Date.now() + 3 * 60 * 1000);
     alert(`OTP sent. For demo: your OTP is ${code}.`);
     setSending(false);
   }
 
-  /**
-   * Handles the final form submission.
-   */
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (otp !== generatedOtp) {
       alert("Invalid OTP: The code you entered is incorrect.");
@@ -134,23 +231,36 @@ export default function SignupForm() {
     }
     setSubmitting(true);
     alert("Signup complete! Your Roadguard account has been created.");
-    
-    // Clear all form data from state
-    setName('');
-    setUsername('');
-    setEmail('');
-    setPhone('');
-    setPassword('');
-    setOtp('');
-    setGeneratedOtp(null);
+
+    // Clear nuqs state
+    setName("");
+    setUsername("");
+    setEmail("");
+    setPhone("");
+    setPasswordHash("");
+    setOtp("");
     setSecondsLeft(0);
-    setExpiresAt(null);
+    setExpiresAt(0);
+
+    // Clear local state
+    setPassword("");
+    setGeneratedOtp(null);
     setExpiryLeft(0);
-    
+
     setSubmitting(false);
   }
 
-  // --- JSX Rendering ---
+  const debugInfo = {
+    name,
+    username,
+    email,
+    phone,
+    passwordHash,
+    otp,
+    secondsLeft,
+    expiresAt,
+  };
+
   return (
     <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-2xl shadow-gray-200/40 dark:shadow-black/40">
       <div className="p-8">
@@ -162,78 +272,88 @@ export default function SignupForm() {
                 <span
                   aria-hidden="true"
                   className={`flex h-6 w-6 items-center justify-center rounded-full border text-xs ${
-                    active ? "border-amber-500 bg-amber-500 text-black" : "border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400"
+                    active
+                      ? "border-amber-500 bg-amber-500 text-black"
+                      : "border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400"
                   }`}
                 >
                   {n}
                 </span>
-                <span className={active ? "font-medium text-gray-900 dark:text-white" : "text-gray-500 dark:text-gray-400"}>
-                  <Trans 
-                    translationKey={`signup.form.step${n}`}
-                    text={n === 1 ? "Details" : n === 2 ? "Verify" : "Done"}
-                  />
+                <span
+                  className={
+                    active
+                      ? "font-medium text-gray-900 dark:text-white"
+                      : "text-gray-500 dark:text-gray-400"
+                  }
+                >
+                  <Trans text={n === 1 ? "Details" : n === 2 ? "Verify" : "Done"} />
                 </span>
-                {i < 2 && <span className="mx-2 h-px w-8 bg-gray-200 dark:bg-gray-800" aria-hidden="true" />}
+                {i < 2 && (
+                  <span
+                    className="mx-2 h-px w-8 bg-gray-200 dark:bg-gray-800"
+                    aria-hidden="true"
+                  />
+                )}
               </li>
             );
           })}
         </ol>
 
         <form onSubmit={handleSubmit} className="grid gap-5 mt-8">
-          {/* ----- Step 1: User Details ----- */}
+          {/* Step 1 */}
           <div className="grid gap-2">
             <label htmlFor="name" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              <Trans translationKey="signup.form.fullName" text="Full name" />
+              <Trans text="Full name" />
             </label>
-            <input 
-              id="name" 
-              value={name} 
-              onChange={(e) => setName(e.target.value)} 
-              required 
+            <input
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
               disabled={currentStep > 1}
               className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white disabled:opacity-70"
             />
           </div>
-          
+
           <div className="grid gap-2">
             <label htmlFor="username" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              <Trans translationKey="signup.form.username" text="Username" />
+              <Trans text="Username" />
             </label>
-            <input 
-              id="username" 
-              value={username} 
-              onChange={(e) => setUsername(e.target.value)} 
-              required 
+            <input
+              id="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
               disabled={currentStep > 1}
               className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white disabled:opacity-70"
             />
           </div>
-          
+
           <div className="grid gap-2">
             <label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              <Trans translationKey="signup.form.email" text="Email" />
+              <Trans text="Email" />
             </label>
-            <input 
-              id="email" 
-              type="email" 
-              value={email} 
-              onChange={(e) => setEmail(e.target.value)} 
-              required 
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
               disabled={currentStep > 1}
               className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white disabled:opacity-70"
             />
           </div>
-          
+
           <div className="grid gap-2">
             <label htmlFor="phone" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              <Trans translationKey="signup.form.mobileNumber" text="Mobile number" />
+              <Trans text="Mobile number" />
             </label>
-            <input 
-              id="phone" 
-              type="tel" 
-              value={phone} 
-              onChange={(e) => setPhone(e.target.value)} 
-              required 
+            <input
+              id="phone"
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              required
               disabled={currentStep > 1}
               className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white disabled:opacity-70"
             />
@@ -241,31 +361,33 @@ export default function SignupForm() {
 
           <div className="grid gap-2">
             <label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              <Trans translationKey="signup.form.password" text="Password" />
+              <Trans text="Password" />
             </label>
-            <input 
-              id="password" 
-              type="password" 
-              value={password} 
-              onChange={(e) => setPassword(e.target.value)} 
-              required 
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
               disabled={currentStep > 1}
               className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white disabled:opacity-70"
             />
           </div>
-          
-          {/* ----- Step 2: OTP Verification ----- */}
+
+          {/* Step 2: OTP */}
           <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
             <div className="grid gap-2">
               <label htmlFor="otp-input-0" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                <Trans translationKey="signup.form.otp" text="One-Time Password" />
+                <Trans text="One-Time Password" />
               </label>
               <div className="flex items-center gap-2">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <input
                     key={i}
                     id={`otp-input-${i}`}
-                    ref={(el) => { otpRefs.current[i] = el; }}
+                    ref={(el) => {
+                      otpRefs.current[i] = el;
+                    }}
                     value={otp[i] ?? ""}
                     onChange={(e) => {
                       const v = e.target.value.replace(/\D/g, "");
@@ -290,12 +412,12 @@ export default function SignupForm() {
               <p className="text-xs text-gray-500 dark:text-gray-400" aria-live="polite">
                 {generatedOtp ? (
                   expiryLeft > 0 ? (
-                    <Trans translationKey="signup.form.otpExpiry" text={`Expires in ${formatSeconds(expiryLeft)}.`} />
+                    <Trans text={`Expires in ${formatSeconds(expiryLeft)}.`} />
                   ) : (
-                    <Trans translationKey="signup.form.otpExpired" text="OTP expired." />
+                    <Trans text="OTP expired." />
                   )
                 ) : (
-                  <Trans translationKey="signup.form.otpInfo" text="We'll send a code to your mobile." />
+                  <Trans text="We'll send a code to your mobile." />
                 )}
               </p>
             </div>
@@ -305,15 +427,14 @@ export default function SignupForm() {
               disabled={sending || secondsLeft > 0}
               className="px-4 py-2 h-12 border rounded-md text-sm font-medium transition-colors border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 hover:bg-gray-100 dark:hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Trans 
-                translationKey="signup.form.generateOtpBtn" 
+              <Trans
                 text={
-                  secondsLeft > 0 
-                    ? `Resend in ${secondsLeft}s` 
-                    : generatedOtp 
-                      ? "Resend OTP" 
-                      : "Generate OTP"
-                } 
+                  secondsLeft > 0
+                    ? `Resend in ${secondsLeft}s`
+                    : generatedOtp
+                    ? "Resend OTP"
+                    : "Generate OTP"
+                }
               />
             </button>
           </div>
@@ -323,14 +444,10 @@ export default function SignupForm() {
             className="w-full px-4 py-3 rounded-md text-white font-semibold bg-amber-600 hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 disabled:bg-amber-800 disabled:cursor-not-allowed"
             disabled={submitting || !generatedOtp || otp.replace(/\D/g, "").length !== 6}
           >
-            <Trans 
-              translationKey="signup.form.submitBtn" 
-              text={submitting ? "Submitting..." : "Create Account"} 
-            />
+            <Trans text={submitting ? "Submitting..." : "Create Account"} />
           </button>
         </form>
       </div>
     </div>
   );
 }
-
