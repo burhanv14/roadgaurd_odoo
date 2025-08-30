@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import { Op } from 'sequelize';
 import { User, Otp } from '../models';
 import { ICreateUser, ILoginUser, IAuthenticatedRequest, IJwtPayload, UserRole } from '../types';
+import { sendOtpEmail } from '../services/emailService';
 
 // Generate JWT Token
 const generateToken = (user: User): string => {
@@ -21,14 +22,26 @@ const generateToken = (user: User): string => {
   return jwt.sign(payload, secret, { expiresIn: '7d' });
 };
 
-// Send OTP (Console log for now)
-const sendOtp = (phone: string, email: string, otpCode: string): void => {
+// Send OTP via email
+const sendOtp = async (phone: string, email: string, otpCode: string, userName: string): Promise<void> => {
+  const expiryMinutes = parseInt(process.env['OTP_EXPIRY_MINUTES'] || '5', 10);
+  
+  // Send email OTP
+  const emailSent = await sendOtpEmail(email, userName, otpCode, expiryMinutes);
+  
+  if (emailSent) {
+    console.log(`📧 OTP email sent successfully to ${email}`);
+  } else {
+    console.error(`❌ Failed to send OTP email to ${email}`);
+  }
+  
+  // For now, still log to console for phone (you can integrate SMS service later)
   console.log('\n📱 OTP NOTIFICATION:');
   console.log('====================');
   console.log(`📧 Email: ${email}`);
   console.log(`📱 Phone: ${phone}`);
   console.log(`🔐 OTP Code: ${otpCode}`);
-  console.log(`⏰ Valid for: ${process.env['OTP_EXPIRY_MINUTES'] || 5} minutes`);
+  console.log(`⏰ Valid for: ${expiryMinutes} minutes`);
   console.log('====================\n');
 };
 
@@ -97,8 +110,8 @@ const signup = async (req: Request, res: Response): Promise<void> => {
       is_used: false
     });
 
-    // Send OTP (console.log for now)
-    sendOtp(phone, email, otpCode);
+    // Send OTP via email
+    await sendOtp(phone, email, otpCode, name);
 
     res.status(201).json({
       success: true,
@@ -340,9 +353,89 @@ const getMe = async (req: IAuthenticatedRequest, res: Response): Promise<void> =
   }
 };
 
+// POST /auth/resend-otp
+const resendOtp = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { identifier }: { identifier: string } = req.body;
+
+    // Validate required fields
+    if (!identifier) {
+      res.status(400).json({
+        success: false,
+        message: 'Email/phone is required.'
+      });
+      return;
+    }
+
+    // Find user by email or phone
+    const user = await User.findOne({
+      where: {
+        [Op.or]: [
+          { email: identifier },
+          { phone: identifier }
+        ]
+      }
+    });
+
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: 'User not found.'
+      });
+      return;
+    }
+
+    // Check if user is already verified
+    if (user.is_verified) {
+      res.status(400).json({
+        success: false,
+        message: 'User is already verified.'
+      });
+      return;
+    }
+
+    // Delete any existing unused OTPs for this user
+    await Otp.destroy({
+      where: {
+        user_id: user.id,
+        is_used: false
+      }
+    });
+
+    // Generate new OTP
+    const otpCode = Otp.generateOtpCode();
+    const expiresAt = Otp.getExpiryTime(parseInt(process.env['OTP_EXPIRY_MINUTES'] || '5', 10));
+
+    // Store new OTP in database
+    await Otp.create({
+      user_id: user.id,
+      otp_code: otpCode,
+      purpose: 'VERIFICATION',
+      expires_at: expiresAt,
+      is_used: false
+    });
+
+    // Send new OTP via email
+    await sendOtp(user.phone, user.email, otpCode, user.name);
+
+    res.status(200).json({
+      success: true,
+      message: 'New OTP sent successfully to your email and phone.'
+    });
+
+  } catch (error) {
+    console.error('Resend OTP error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while resending OTP.'
+    });
+  }
+};
+
 export {
   signup,
   verifyOtp,
   login,
-  getMe
+  getMe,
+  resendOtp
 };

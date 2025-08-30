@@ -10,34 +10,43 @@
     "dev:nodemon": "nodemon --exec ts-node src/server.ts",
     "migrate": "npx sequelize-cli db:migrate",
     "migrate:undo": "npx sequelize-cli db:migrate:undo",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test:email": "npm run build && node test-email.js"
   },
-  "keywords": ["roadguard", "api", "authentication", "express", "sequelize"],
+  "keywords": [
+    "roadguard",
+    "api",
+    "authentication",
+    "express",
+    "sequelize"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@types/nodemailer": "^7.0.1",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
     "express": "^4.18.2",
-    "sequelize": "^6.35.2",
+    "express-rate-limit": "^7.1.5",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "nodemailer": "^7.0.5",
     "pg": "^8.11.3",
     "pg-hstore": "^2.3.4",
-    "bcryptjs": "^2.4.3",
-    "jsonwebtoken": "^9.0.2",
-    "dotenv": "^16.3.1",
-    "cors": "^2.8.5",
-    "helmet": "^7.1.0",
-    "express-rate-limit": "^7.1.5"
+    "sequelize": "^6.35.2"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.4",
+    "@types/cors": "^2.8.14",
+    "@types/express": "^4.17.17",
+    "@types/jsonwebtoken": "^9.0.3",
+    "@types/node": "^20.8.0",
+    "@types/pg": "^8.10.7",
     "nodemon": "^3.0.2",
     "sequelize-cli": "^6.6.2",
-    "typescript": "^5.2.2",
     "ts-node": "^10.9.1",
     "ts-node-dev": "^2.0.0",
-    "@types/node": "^20.8.0",
-    "@types/express": "^4.17.17",
-    "@types/cors": "^2.8.14",
-    "@types/bcryptjs": "^2.4.4",
-    "@types/jsonwebtoken": "^9.0.3",
-    "@types/pg": "^8.10.7"
+    "typescript": "^5.2.2"
   }
 }
