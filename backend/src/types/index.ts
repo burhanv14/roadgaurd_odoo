@@ -73,6 +73,89 @@ export interface IAuthenticatedRequest extends Request {
   user?: IJwtPayload;
 }
 
+// Workshop interface
+export interface IWorkshop {
+  id: string;
+  name: string;
+  description: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  image_url: string | null;
+  status: 'OPEN' | 'CLOSED';
+  rating: number;
+  ownerId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Workshop creation payload
+export interface ICreateWorkshop {
+  name: string;
+  description: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  image_url?: string;
+  status?: 'OPEN' | 'CLOSED';
+}
+
+// Workshop update payload
+export interface IUpdateWorkshop {
+  name?: string;
+  description?: string;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+  image_url?: string;
+  status?: 'OPEN' | 'CLOSED';
+}
+
+// Workshop query filters
+export interface IWorkshopFilters {
+  status?: 'OPEN' | 'CLOSED';
+  latitude?: number;
+  longitude?: number;
+  radius?: number;
+  search?: string;
+  sort?: 'nearest' | 'mostRated' | 'newest' | 'oldest';
+  page?: number;
+  limit?: number;
+}
+
+// Service interface
+export interface IService {
+  id: string;
+  workshop_id: string;
+  name: string;
+  description: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Service creation payload
+export interface ICreateService {
+  name: string;
+  description: string;
+}
+
+// Review interface
+export interface IReview {
+  id: string;
+  workshop_id: string;
+  user_id: string;
+  rating: number;
+  comment: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Review creation payload
+export interface ICreateReview {
+  rating: number;
+  comment: string;
+}
+
 // Database connection config
 export interface IDatabaseConfig {
   username: string;

@@ -134,10 +134,13 @@ const requestEmailVerification = async (req: Request, res: Response): Promise<vo
 // POST /auth/verify-email - Step 2: Verify email with OTP
 const verifyEmail = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, otpCode } = req.body;
+    const { email, otpCode, otp } = req.body;
+    
+    // Accept both 'otp' and 'otpCode' for flexibility
+    const finalOtpCode = otpCode || otp;
 
     // Validate required fields
-    if (!email || !otpCode) {
+    if (!email || !finalOtpCode) {
       res.status(400).json({
         success: false,
         message: 'Email and OTP code are required.'
@@ -146,16 +149,16 @@ const verifyEmail = async (req: Request, res: Response): Promise<void> => {
     }
 
     // Find valid OTP for email verification
-    const otp = await Otp.findOne({
+    const otpRecord = await Otp.findOne({
       where: {
         email,
-        otp_code: otpCode,
+        otp_code: finalOtpCode,
         purpose: 'EMAIL_VERIFICATION',
         is_used: false
       }
     });
 
-    if (!otp) {
+    if (!otpRecord) {
       res.status(400).json({
         success: false,
         message: 'Invalid OTP code.'
@@ -164,8 +167,8 @@ const verifyEmail = async (req: Request, res: Response): Promise<void> => {
     }
 
     // Check if OTP is expired
-    if (otp.isExpired()) {
-      await otp.destroy();
+    if (otpRecord.isExpired()) {
+      await otpRecord.destroy();
       res.status(400).json({
         success: false,
         message: 'OTP has expired. Please request a new one.'
@@ -174,7 +177,7 @@ const verifyEmail = async (req: Request, res: Response): Promise<void> => {
     }
 
     // Mark OTP as used (keep it for signup verification)
-    await otp.update({ is_used: true });
+    await otpRecord.update({ is_used: true });
 
     res.status(200).json({
       success: true,
