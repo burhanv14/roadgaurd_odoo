@@ -1,17 +1,18 @@
-import { lazy } from 'react';
-import { createBrowserRouter, Outlet } from 'react-router-dom';
-import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
-import { PublicRoute } from '@/components/auth/PublicRoute';
+import { lazy } from "react";
+import { createBrowserRouter, Outlet } from "react-router-dom";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { PublicRoute } from "@/components/auth/PublicRoute";
 
 // Lazy load pages for better performance
-const LoginPage = lazy(() => import('@/pages/auth/LoginPage'));
-const SignupPage = lazy(() => import('@/pages/auth/SignupPage'));
-const DashboardPage = lazy(() => import('@/pages/dashboard/index'));
-const HomePage = lazy(() => import('@/pages/index'))
+const LoginPage = lazy(() => import("@/pages/auth/LoginPage"));
+const SignupPage = lazy(() => import("@/pages/auth/SignupPage"));
+const DashboardPage = lazy(() => import("@/pages/dashboard/index"));
+const HomePage = lazy(() => import("@/pages/index"));
+const NotFoundPage = lazy(() => import("@/pages/NotFoundPage"));
 
 export const router = createBrowserRouter([
   {
-    path: '/',
+    path: "/",
     element: <Outlet />,
     children: [
       {
@@ -23,7 +24,7 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        path: 'login',
+        path: "login",
         element: (
           <PublicRoute>
             <LoginPage />
@@ -31,7 +32,7 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        path: 'signup',
+        path: "signup",
         element: (
           <PublicRoute>
             <SignupPage />
@@ -39,7 +40,7 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        path: 'dashboard',
+        path: "dashboard",
         element: (
           <ProtectedRoute>
             <DashboardPage />
@@ -47,8 +48,8 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        path: '*',
-        element: <DashboardPage />,
+        path: "*",
+        element: <NotFoundPage />,
       },
     ],
   },
