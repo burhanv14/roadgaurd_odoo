@@ -1,5 +1,7 @@
 import { type ReactNode } from 'react';
 import { RAHeader } from '../components/header';
+import {RAFooter} from '../components/footer';
+
 
 interface LayoutProps {
   children: ReactNode;
@@ -13,6 +15,7 @@ export function Layout({ children, showHeader = true }: LayoutProps) {
       <main className={showHeader ? "pt-16 md:pt-20" : ""}>
         {children}
       </main>
+      <RAFooter />
     </div>
   );
 }
