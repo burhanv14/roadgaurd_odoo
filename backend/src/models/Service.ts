@@ -34,28 +34,20 @@ Service.init({
     onUpdate: 'CASCADE'
   },
   name: {
-    type: DataTypes.STRING,
+    type: DataTypes.STRING(255),
     allowNull: false,
     validate: {
       notEmpty: {
         msg: 'Service name is required'
-      },
-      len: {
-        args: [2, 255],
-        msg: 'Service name must be between 2 and 255 characters'
       }
     }
   },
   description: {
-    type: DataTypes.TEXT,
+    type: DataTypes.STRING(1000),
     allowNull: false,
     validate: {
       notEmpty: {
         msg: 'Service description is required'
-      },
-      len: {
-        args: [10, 1000],
-        msg: 'Service description must be between 10 and 1000 characters'
       }
     }
   },
