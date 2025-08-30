@@ -1,7 +1,8 @@
 import React from "react";
+import { Trans } from "@/components/Trans";
 
-// The left-side panel for the login page.
-export default function LoginHero() {
+
+export default function LoginHero(): React.ReactElement {
   return (
     <aside
       aria-label="RoadGuard welcome back"
@@ -21,21 +22,39 @@ export default function LoginHero() {
                 d="M12 2l2.4 5 5.3.8-3.8 3.7.9 5.3L12 14.9 7.2 16.8l.9-5.3L4.3 7.8 9.6 7l2.4-5z"
               />
             </svg>
-            Welcome back to RoadGuard
+            <Trans
+              translationKey="login.hero.welcome"
+              text="Welcome back to RoadGuard"
+            />
           </span>
-          <h2 className="text-pretty text-4xl font-bold leading-tight md:text-5xl">Your journey awaits. Let's get you back on the road.</h2>
+          <h2 className="text-pretty text-4xl font-bold leading-tight md:text-5xl">
+            <Trans
+              translationKey="login.hero.title"
+              text="Your journey awaits. Let's get you back on the road."
+            />
+          </h2>
           <p className="max-w-md text-zinc-300">
-            Sign in to access your account, manage your details, and get help whenever you need it. We're glad to have you with us.
+            <Trans
+              translationKey="login.hero.description"
+              text="Sign in to access your account, manage your details, and get help whenever you need it. We're glad to have you with us."
+            />
           </p>
         </div>
         <blockquote className="mt-auto rounded-lg border border-white/10 bg-white/5 p-4">
           <p className="text-sm text-zinc-200">
-            “Knowing I have RoadGuard is such a relief. Fast, professional, and always there when you need them.”
+            <Trans
+              translationKey="login.hero.quote"
+              text="“Knowing I have RoadGuard is such a relief. Fast, professional, and always there when you need them.”"
+            />
           </p>
-          <footer className="mt-2 text-xs text-zinc-400">Satisfied member since 2025</footer>
+          <footer className="mt-2 text-xs text-zinc-400">
+            <Trans
+              translationKey="login.hero.quoteAuthor"
+              text="Satisfied member since 2025"
+            />
+          </footer>
         </blockquote>
       </div>
     </aside>
   );
 }
-

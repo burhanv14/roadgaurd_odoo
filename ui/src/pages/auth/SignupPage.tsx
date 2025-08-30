@@ -1,6 +1,7 @@
 import SignupHero from "./components/SignupHero";
 import SignupForm from "./components/SignupForm";
 import { Trans } from "@/components/Trans";
+import { Link } from "react-router-dom";
 
 export default function SignupPage() {
   return (
@@ -23,9 +24,9 @@ export default function SignupPage() {
             <SignupForm />
             <p className="mt-6 text-xs text-gray-600 dark:text-gray-400">
               <Trans translationKey="signup.page.loginPrompt" text="Already have an account?" />{" "}
-              <a href="#" className="underline underline-offset-4 hover:text-amber-600 dark:hover:text-amber-500">
+              <Link to="/login" className="underline underline-offset-4 hover:text-amber-600 dark:hover:text-amber-500">
                 <Trans translationKey="signup.page.loginLink" text="Log in" />
-              </a>
+              </Link>
               .
             </p>
           </div>

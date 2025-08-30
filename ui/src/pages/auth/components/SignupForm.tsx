@@ -1,116 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useQueryState, parseAsString, parseAsInteger } from "nuqs";
 
-/** ---------- Minimal nuqs-like parser utilities ---------- */
-
-interface ParserOptions<T = any> {
-  parse?: (value: string) => T;
-  serialize?: (value: T) => string;
-  defaultValue: T;
-}
-
-const createParser = <T,>(options: ParserOptions<T>) => ({
-  parse: options.parse ?? ((value: string) => value as unknown as T),
-  serialize: options.serialize ?? ((value: T) => String(value)),
-  defaultValue: options.defaultValue,
-});
-
-const parseAsString = createParser<string>({ defaultValue: "" });
-const parseAsInteger = createParser<number>({
-  parse: (value: string) => {
-    const n = parseInt(value, 10);
-    return Number.isFinite(n) ? n : 0;
-  },
-  serialize: (value: number) => String(value),
-  defaultValue: 0,
-});
-
-/** WARNING: even hashed passwords in URLs can leak via logs/referrers. */
-const parseAsEncryptedPassword = createParser<string>({
-  parse: (value: string) => value,
-  serialize: (value: string) => value ?? "",
-  defaultValue: "",
-});
-
-/** ---------- Fixed mock of nuqs' useQueryState ---------- */
-/**
- * Syncs a single query param with React state.
- * - Reads initial value from URL using parser.
- * - Writes on set (replaceState).
- * - Removes param when equal to defaultValue.
- * - Listens to popstate to stay in sync with back/forward.
- */
-function useQueryState<T>(
-  key: string,
-  parser: ReturnType<typeof createParser<T>>
-) {
-  // Read from current URL
-  const readFromURL = (): T => {
-    const sp = new URLSearchParams(window.location.search);
-    const raw = sp.get(key);
-    return raw !== null ? parser.parse(raw) : parser.defaultValue;
-  };
-
-  const [value, setValue] = useState<T>(() => {
-    try {
-      return typeof window !== "undefined" ? readFromURL() : parser.defaultValue;
-    } catch {
-      return parser.defaultValue;
-    }
-  });
-
-  // Keep state in sync when user navigates with back/forward
-  useEffect(() => {
-    const onPopState = () => {
-      try {
-        setValue(readFromURL());
-      } catch {
-        // ignore
-      }
-    };
-    window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
-
-  // Single place to write to URL
-  const writeToURL = (next: T) => {
-    const url = new URL(window.location.href);
-    const sp = url.searchParams;
-
-    // remove when default to keep URL clean
-    const isDefault =
-      (typeof next === "string" && typeof parser.defaultValue === "string"
-        ? next === (parser.defaultValue as unknown as string)
-        : JSON.stringify(next) === JSON.stringify(parser.defaultValue));
-
-    if (isDefault || next === ("" as unknown as T) || next === (null as unknown as T)) {
-      sp.delete(key);
-    } else {
-      sp.set(key, parser.serialize(next));
-    }
-
-    // Keep hash/path; avoid history spam
-    const newUrl = `${url.pathname}?${sp.toString()}${url.hash}`;
-    window.history.replaceState(null, "", newUrl);
-  };
-
-  // Setter that supports both next value and updater fn
-  const setQueryValue = (next: React.SetStateAction<T>) => {
-    setValue((prev) => {
-      const resolved = typeof next === "function" ? (next as (p: T) => T)(prev) : next;
-      try {
-        writeToURL(resolved);
-      } catch {
-        // ignore URL write errors
-      }
-      return resolved;
-    });
-  };
-
-  return [value, setQueryValue] as const;
-}
-
-/** ---------- Helpers you already had ---------- */
+/** ---------- Helpers ---------- */
 
 const hashPassword = (password: string): string => {
   let hash = 0;
@@ -133,29 +24,29 @@ function formatSeconds(total: number): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-/** ---------- Your component (unchanged logic, now URL-synced) ---------- */
+/** ---------- Component ---------- */
 
 export default function SignupForm() {
-  const [name, setName] = useQueryState("name", parseAsString);
-  const [username, setUsername] = useQueryState("username", parseAsString);
-  const [email, setEmail] = useQueryState("email", parseAsString);
-  const [phone, setPhone] = useQueryState("phone", parseAsString);
-  const [passwordHash, setPasswordHash] = useQueryState("passwordHash", parseAsEncryptedPassword);
-  const [otp, setOtp] = useQueryState("otp", parseAsString);
+  const [name, setName] = useQueryState("name", parseAsString.withDefault(""));
+  const [username, setUsername] = useQueryState("username", parseAsString.withDefault(""));
+  const [email, setEmail] = useQueryState("email", parseAsString.withDefault(""));
+  const [phone, setPhone] = useQueryState("phone", parseAsString.withDefault(""));
+  const [passwordHash, setPasswordHash] = useQueryState("passwordHash", parseAsString.withDefault(""));
+  const [otp, setOtp] = useQueryState("otp", parseAsString.withDefault(""));
 
   const [password, setPassword] = useState("");
   const [generatedOtp, setGeneratedOtp] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [secondsLeft, setSecondsLeft] = useQueryState("secondsLeft", parseAsInteger);
-  const [expiresAt, setExpiresAt] = useQueryState("expiresAt", parseAsInteger);
+  const [secondsLeft, setSecondsLeft] = useQueryState("secondsLeft", parseAsInteger.withDefault(0));
+  const [expiresAt, setExpiresAt] = useQueryState("expiresAt", parseAsInteger.withDefault(0));
   const [expiryLeft, setExpiryLeft] = useState(0);
 
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
     if (password) setPasswordHash(hashPassword(password));
-    else setPasswordHash(""); // keep URL tidy when cleared
+    else setPasswordHash("");
   }, [password, setPasswordHash]);
 
   const emailValid = useMemo(() => /\S+@\S+\.\S+/.test(email), [email]);
@@ -249,18 +140,6 @@ export default function SignupForm() {
 
     setSubmitting(false);
   }
-
-  const debugInfo = {
-    name,
-    username,
-    email,
-    phone,
-    passwordHash,
-    otp,
-    secondsLeft,
-    expiresAt,
-  };
-
   return (
     <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-2xl shadow-gray-200/40 dark:shadow-black/40">
       <div className="p-8">
