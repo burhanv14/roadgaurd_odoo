@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import authRoutes from './routes/authRoutes';
+import workshopRoutes from './routes/workshopRoutes';
 
 dotenv.config();
 
@@ -63,6 +64,7 @@ app.get('/', (_, res) => {
 
 // API Routes
 app.use('/auth', authLimiter, authRoutes);
+app.use('/workshops', workshopRoutes);
 
 // 404 handler for undefined routes
 app.use('*', (req, res) => {
