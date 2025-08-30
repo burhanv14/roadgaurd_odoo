@@ -1,140 +1,354 @@
-# Prisma Postgres Example: Queries, Connection Pooling & Caching
+# RoadGuard Backend API
 
-This project contains a sample application demonstrating various capabilities and workflows of [Prisma Postgres](https://prisma.io/data-platform/postgres):
+A robust authentication system built with Express.js, Sequelize ORM, and PostgreSQL.
 
-- Schema migrations and queries (via [Prisma ORM](https://www.prisma.io/orm))
-- Connection pooling and caching (via [Prisma Accelerate](https://prisma.io/data-platform/accelerate))
+## Features
 
-## Getting started
+- 🔐 **Complete Authentication System**
+  - User registration with email verification
+  - Secure login with JWT tokens
+  - Password reset with OTP verification
+  - Email-based OTP verification
 
-### 1. Set up a Prisma Postgres database in Prisma Data Platform
+- 🛡️ **Security Features**
+  - Password hashing with bcrypt
+  - JWT token authentication
+  - Rate limiting on auth endpoints
+  - Input validation and sanitization
+  - CORS and Helmet security middleware
 
-Follow these steps to create your Prisma Postgres database:
+- 📧 **Email Integration**
+  - OTP delivery via email
+  - Welcome emails
+  - Password reset notifications
+  - Configurable email service
 
-1. Log in to [Prisma Data Platform](https://console.prisma.io/).
-1. In a [workspace](https://www.prisma.io/docs/platform/about#workspace) of your choice, click the **New project** button.
-1. Type a name for your project in the **Name** field, e.g. **hello-ppg**.
-1. In the **Prisma Postgres** section, click the **Get started** button.
-1. In the **Region** dropdown, select the region that's closest to your current location, e.g. **US East (N. Virginia)**.
-1. Click the **Create project** button.
+- 🗄️ **Database**
+  - PostgreSQL with Sequelize ORM
+  - User and OTP models
+  - Automatic table creation
+  - Database migrations support
 
-At this point, you'll be redirected to the **Database** page where you will need to wait a few seconds while the status of your database changes from **`PROVISIONING`**, to **`ACTIVATING`** to **`CONNECTED`**.
+## Tech Stack
 
-Once the green **`CONNECTED`** label appears, your database is ready to use!
+- **Server**: Node.js, Express.js
+- **Database**: PostgreSQL
+- **ORM**: Sequelize
+- **Authentication**: JWT, bcrypt
+- **Validation**: Custom middleware
+- **Security**: Helmet, CORS, Rate limiting
 
-Then, find your database credentials in the **Set up database access** section, copy the `DATABASE_URL` environment variable and store it securely.
+## API Endpoints
 
-```bash no-copy
-DATABASE_URL=<your-database-url>
+### Authentication Routes
+
+#### POST `/api/auth/signup`
+Create a new user account.
+
+**Request Body:**
+```json
+{
+  "email": "user@example.com",
+  "password": "SecurePass123",
+  "firstName": "John",
+  "lastName": "Doe"
+}
 ```
 
-> These `DATABASE_URL` environment variable will be required in the next steps.
-
-Once that setup process has finished, move to the next step.
-
-### 2. Download example and install dependencies
-
-Copy the `try-prisma` command that', paste it into your terminal, and execute it:
-
-```terminal
-npx try-prisma@latest \
-  --template databases/prisma-postgres \
-  --name hello-prisma \
-  --install npm
+**Response:**
+```json
+{
+  "message": "User created successfully. Please check your email for verification OTP.",
+  "user": {
+    "id": "uuid",
+    "email": "user@example.com",
+    "firstName": "John",
+    "lastName": "Doe",
+    "isVerified": false
+  }
+}
 ```
 
-<!-- For reference, this is what the command looks like (note that the `__YOUR_DATABASE_CONNECTION_STRING__` placeholder must be replaced with _your_ actual database connection string):
+#### POST `/api/auth/verify-email`
+Verify email with OTP.
 
+**Request Body:**
+```json
+{
+  "email": "user@example.com",
+  "otp": "123456"
+}
 ```
-npx try-prisma@latest
-  --template databases/prisma-postgres
-  --connection-string __YOUR_DATABASE_CONNECTION_STRING__
-  --name hello-prisma
-  --install npm
+
+**Response:**
+```json
+{
+  "message": "Email verified successfully",
+  "user": { /* user data */ },
+  "token": "jwt_token_here"
+}
 ```
 
-Your connection string that should replace the `__YOUR_DATABASE_CONNECTION_STRING__` placeholder looks similar to this: `prisma+postgres://accelerate.prisma-data.net/?api_key=ey...`
--->
+#### POST `/api/auth/login`
+Login with email and password.
 
-Navigate into the project directory and (if you haven't done so via the CLI wizard) install dependencies:
+**Request Body:**
+```json
+{
+  "email": "user@example.com",
+  "password": "SecurePass123"
+}
+```
 
-```terminal
-cd hello-prisma
+**Response:**
+```json
+{
+  "message": "Login successful",
+  "user": { /* user data */ },
+  "token": "jwt_token_here"
+}
+```
+
+#### POST `/api/auth/resend-otp`
+Resend verification OTP.
+
+**Request Body:**
+```json
+{
+  "email": "user@example.com"
+}
+```
+
+#### POST `/api/auth/forgot-password`
+Request password reset OTP.
+
+**Request Body:**
+```json
+{
+  "email": "user@example.com"
+}
+```
+
+#### POST `/api/auth/reset-password`
+Reset password with OTP.
+
+**Request Body:**
+```json
+{
+  "email": "user@example.com",
+  "otp": "123456",
+  "newPassword": "NewSecurePass123"
+}
+```
+
+#### GET `/api/auth/profile` (Protected)
+Get user profile. Requires Authorization header.
+
+**Headers:**
+```
+Authorization: Bearer <jwt_token>
+```
+
+## Setup Instructions
+
+### Prerequisites
+- Node.js (v16 or higher)
+- PostgreSQL (v12 or higher)
+- npm or yarn
+
+### 1. Clone and Install
+```bash
+cd backend
 npm install
 ```
 
-### 3. Set database connection
+### 2. Database Setup
+Follow the instructions in `DATABASE_SETUP.md` to:
+- Install PostgreSQL
+- Create the database
+- Configure connection
 
-The connection to your database is configured via environment variables in a `.env` file.
+### 3. Environment Configuration
+Copy `.env.example` to `.env` and update values:
 
-First, rename the existing `.env.example` file to just `.env`:
+```env
+# Server Configuration
+NODE_ENV=development
+PORT=5000
 
-```terminal
-mv .env.example .env
+# Database Configuration
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=roadguard_db
+DB_USER=postgres
+DB_PASSWORD=your_password
+
+# JWT Configuration
+JWT_SECRET=your_super_secret_jwt_key
+JWT_EXPIRE=7d
 ```
 
-Then, find your database credentials in the **Set up database access** section, copy the `DATABASE_URL` environment variable and paste them into the `.env` file.
-
-For reference, the file should now look similar to this:
-
+### 4. Start the Server
 ```bash
-DATABASE_URL="prisma+postgres://accelerate.prisma-data.net/?api_key=ey...."
+# Development mode
+npm run dev
+
+# Production mode
+npm start
 ```
 
-### 4. Create database tables (with a schema migration)
+The server will start on http://localhost:5000
 
-Next, you need to create the tables in your database. You can do this by creating and executing a schema migration with the following command of the Prisma CLI:
+## Testing the API
 
-```terminal
-npx prisma migrate dev --name init
+### Health Check
+```bash
+curl http://localhost:5000/health
+curl http://localhost:5000/api/auth/health
 ```
 
-This will map the `User` and `Post` models that are defined in your [Prisma schema](./prisma/schema.prisma) to your database. You can also review the SQL migration that was executed and created the tables in the newly created `prisma/migrations` directory.
+### Example: Complete Registration Flow
 
-### 5. Execute queries with Prisma ORM
-
-The [`src/queries.ts`](./src/queries.ts) script contains a number of CRUD queries that will write and read data in your database. You can execute it by running the following command in your terminal:
-
-```terminal
-npm run queries
+1. **Sign up a user:**
+```bash
+curl -X POST http://localhost:5000/api/auth/signup \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "test@example.com",
+    "password": "SecurePass123",
+    "firstName": "Test",
+    "lastName": "User"
+  }'
 ```
 
-Once the script has completed, you can inspect the logs in your terminal or use Prisma Studio to explore what records have been created in the database:
+2. **Check console for OTP** (in development mode)
 
-```terminal
-npx prisma studio
+3. **Verify email:**
+```bash
+curl -X POST http://localhost:5000/api/auth/verify-email \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "test@example.com",
+    "otp": "123456"
+  }'
 ```
 
-### 6. Explore caching with Prisma Accelerate
-
-The [`src/caching.ts`](./src/caching.ts) script contains a sample query that uses [Stale-While-Revalidate](https://www.prisma.io/docs/accelerate/caching#stale-while-revalidate-swr) (SWR) and [Time-To-Live](https://www.prisma.io/docs/accelerate/caching#time-to-live-ttl) (TTL) to cache a database query using Prisma Accelerate. You can execute it as follows:
-
-```terminal
-npm run caching
+4. **Login:**
+```bash
+curl -X POST http://localhost:5000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "test@example.com",
+    "password": "SecurePass123"
+  }'
 ```
 
-Take note of the time that it took to execute the query, e.g.:
-
-```terminal
-The query took 2009.2467149999998ms.
+5. **Access protected route:**
+```bash
+curl http://localhost:5000/api/auth/profile \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
-Now, run the script again:
+## Project Structure
 
-```terminal
-npm run caching
+```
+backend/
+├── src/
+│   ├── config/
+│   │   └── database.js          # Database configuration
+│   ├── controllers/
+│   │   └── auth.controller.js   # Authentication logic
+│   ├── middleware/
+│   │   ├── auth.js             # JWT authentication
+│   │   └── validation.js       # Input validation
+│   ├── models/
+│   │   ├── User.js             # User model
+│   │   ├── OTP.js              # OTP model
+│   │   └── index.js            # Model associations
+│   ├── routes/
+│   │   └── auth.js             # Authentication routes
+│   ├── services/
+│   │   └── email.service.js    # Email service
+│   └── server.js               # Application entry point
+├── .env                        # Environment variables
+├── .env.example               # Environment template
+├── package.json               # Dependencies
+├── DATABASE_SETUP.md          # Database setup guide
+└── README.md                  # This file
 ```
 
-You'll notice that the time the query took will be a lot shorter this time, e.g.:
+## Security Features
 
-```terminal
-The query took 300.5655280000001ms.
+### Password Requirements
+- Minimum 6 characters
+- At least one uppercase letter
+- At least one lowercase letter
+- At least one number
+
+### Rate Limiting
+- Auth endpoints: 5 requests per 15 minutes per IP
+- OTP endpoints: 3 requests per minute per IP
+- General API: 100 requests per 15 minutes per IP
+
+### OTP Security
+- Email verification OTP: 10 minutes expiry
+- Password reset OTP: 15 minutes expiry
+- Maximum 3 attempts per OTP
+- Automatic cleanup of expired OTPs
+
+## Email Configuration
+
+Currently using console logging for development. For production, update `src/services/email.service.js` with your email provider:
+
+### Gmail Configuration
+```env
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USER=your_email@gmail.com
+EMAIL_PASS=your_app_password
 ```
 
-## Next steps
+### Other Providers
+- **SendGrid**: Use SendGrid API
+- **AWS SES**: Use AWS SDK
+- **Mailgun**: Use Mailgun API
 
-- Check out the [Prisma docs](https://www.prisma.io/docs)
-- [Join our community on Discord](https://pris.ly/discord?utm_source=github&utm_medium=prisma_examples&utm_content=next_steps_section) to share feedback and interact with other users.
-- [Subscribe to our YouTube channel](https://pris.ly/youtube?utm_source=github&utm_medium=prisma_examples&utm_content=next_steps_section) for live demos and video tutorials.
-- [Follow us on X](https://pris.ly/x?utm_source=github&utm_medium=prisma_examples&utm_content=next_steps_section) for the latest updates.
-- Report issues or ask [questions on GitHub](https://pris.ly/github?utm_source=github&utm_medium=prisma_examples&utm_content=next_steps_section).
+## Development Notes
+
+### Database Models
+
+**User Model:**
+- UUID primary key
+- Email (unique, validated)
+- Password (hashed with bcrypt)
+- First name, last name
+- Email verification status
+- Role (user/admin)
+- Timestamps
+
+**OTP Model:**
+- UUID primary key
+- Email (foreign key reference)
+- OTP code (6 digits)
+- Type (email_verification, password_reset)
+- Expiry timestamp
+- Usage status
+- Attempt counter
+
+### Error Handling
+- Comprehensive error responses
+- Development vs production error details
+- Proper HTTP status codes
+- Input validation errors
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## License
+
+MIT License - see LICENSE file for details.
