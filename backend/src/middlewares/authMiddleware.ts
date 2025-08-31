@@ -5,6 +5,13 @@ import { IJwtPayload, IAuthenticatedRequest } from '../types';
 
 const authMiddleware = async (req: IAuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
+    // Allow CORS preflight requests to pass through without authentication
+    // Browsers send OPTIONS preflight without Authorization header; blocking
+    // them in the auth middleware prevents proper CORS negotiation.
+    if (req.method === 'OPTIONS') {
+      return next();
+    }
+
     // Get token from header
     const authHeader = req.header('Authorization');
     

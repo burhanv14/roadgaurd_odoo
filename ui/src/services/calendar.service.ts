@@ -135,6 +135,8 @@ export interface CalendarFilters {
   endDate?: string;
 }
 
+import { TokenManager } from '../lib/token.utils';
+
 // Google Calendar Configuration
 const GOOGLE_CONFIG = {
   CLIENT_ID: import.meta.env.VITE_GOOGLE_CLIENT_ID || 'your-google-client-id',
@@ -229,12 +231,10 @@ class CalendarService {
 
   async getWorkerCalendar(filters?: CalendarFilters): Promise<WorkerCalendarData> {
     try {
-      // Get authentication token
-      const token = localStorage.getItem('token');
+      // Get authentication token from TokenManager
+      const token = TokenManager.getToken();
       if (!token) {
-        console.warn('No authentication token found, showing mock calendar data');
-        // Return mock calendar data to demonstrate functionality
-        return this.getMockCalendarData();
+        throw new Error('Authentication token not found');
       }
 
       // Build query parameters
@@ -277,8 +277,8 @@ class CalendarService {
       }
     } catch (error) {
       console.error('Error fetching calendar data from backend:', error);
-      // Return mock calendar data instead of empty data to show functionality
-      return this.getMockCalendarData();
+      // Re-throw so caller can handle (hooks will set error state)
+      throw error;
     }
   }
 

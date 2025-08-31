@@ -156,6 +156,10 @@ const AssignMechanics: React.FC<AssignMechanicsProps> = ({ workshopId }) => {
         setTimeout(() => {
           fetchData();
         }, 1000);
+        // Notify calendar components to refresh
+        setTimeout(() => {
+          try { window.dispatchEvent(new Event('calendar:refresh')); } catch (e) { /* ignore */ }
+        }, 1200);
       }
     } catch (err: any) {
       console.error('Error assigning worker:', err);

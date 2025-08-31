@@ -20,8 +20,45 @@ const app = express();
 app.use(helmet());
 
 // CORS configuration
+// Allow common dev origins (Vite, CRA) and any value provided in FRONTEND_URL.
+// Use a dynamic origin callback so we can keep credentials: true and reflect the
+// incoming origin when allowed.
+const allowedOrigins = [
+  process.env['FRONTEND_URL'],
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173'
+].filter(Boolean);
+
+// Debug logger for incoming Origin header on service-requests paths
+app.use((req, _res, next) => {
+  if (req.path.startsWith('/service-requests')) {
+    console.log('Incoming request Origin header:', req.headers.origin);
+  }
+  next();
+});
+
+// CORS configuration: reflect origin when allowed. Be forgiving for local dev
+// origins (localhost/127.0.0.1 and Vite default ports). This will ensure
+// Access-Control-Allow-Origin is present on both preflight and actual responses
+// for development environments.
 app.use(cors({
-  origin: process.env['FRONTEND_URL'] || 'http://localhost:3000',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (curl, server-to-server)
+    if (!origin) return callback(null, true);
+
+    // Allow explicit allowed origins
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+
+    // Allow local host variants (ports, IPv4 loopback, and Vite dev host)
+    if (/localhost(:\d+)?$/.test(origin) || /127\.0\.0\.1(:\d+)?$/.test(origin) || origin.includes('5173')) {
+      return callback(null, true);
+    }
+
+    // Otherwise deny but don't throw - let CORS middleware reject by not adding headers
+    return callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
   optionsSuccessStatus: 200
 }));

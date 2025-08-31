@@ -47,6 +47,13 @@ export const useCalendar = (initialFilters?: CalendarFilters) => {
     fetchCalendarData();
   }, [fetchCalendarData]);
 
+  // Listen for external refresh events (other components can dispatch to force refresh)
+  useEffect(() => {
+    const handler = () => fetchCalendarData();
+    window.addEventListener('calendar:refresh', handler);
+    return () => window.removeEventListener('calendar:refresh', handler);
+  }, [fetchCalendarData]);
+
   return {
     calendarData,
     loading,
