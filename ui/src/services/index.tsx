@@ -115,13 +115,25 @@ class ApiService {
       apiError.statusCode = error.response.status;
       apiError.message = (error.response.data as any)?.message || error.message;
       apiError.details = error.response.data;
+      
+      // Handle specific CORS errors
+      if (error.response.status === 0 || error.message.includes('CORS')) {
+        apiError.message = 'CORS error: Unable to connect to the server. Please check your network connection and server configuration.';
+        apiError.statusCode = 0;
+      }
     } else if (error.request) {
       // Request was made but no response received
-      apiError.message = 'Network error - please check your connection';
+      apiError.message = 'Network error - please check your connection and ensure the server is running';
       apiError.statusCode = 0;
     } else {
       // Something else happened
       apiError.message = error.message;
+      
+      // Handle CORS-related errors
+      if (error.message.includes('CORS') || error.message.includes('cross-origin')) {
+        apiError.message = 'CORS error: Cross-origin request blocked. Please check server CORS configuration.';
+        apiError.statusCode = 0;
+      }
     }
 
     return apiError;
@@ -355,7 +367,7 @@ class ApiService {
 
 // Create and export API service instance
 const apiConfig: ApiServiceConfig = {
-  baseURL: import.meta.env.VITE_API_BASE_URL,
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000',
   timeout: 10000,
   defaultHeaders: {
     'Accept': 'application/json',

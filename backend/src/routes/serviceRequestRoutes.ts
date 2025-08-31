@@ -4,6 +4,16 @@ import authenticateToken from '../middlewares/authMiddleware';
 
 const router = Router();
 
+// Handle preflight requests for CORS
+router.options('*', (req, res) => {
+  console.log('OPTIONS preflight request for:', req.path);
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.status(200).end();
+});
+
 // All routes require authentication
 router.use(authenticateToken);
 

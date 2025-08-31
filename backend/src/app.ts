@@ -28,13 +28,17 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://127.0.0.1:3000',
   'http://localhost:5173',
-  'http://127.0.0.1:5173'
+  'http://127.0.0.1:5173',
+  'http://localhost:4173',
+  'http://127.0.0.1:4173'
 ].filter(Boolean);
 
 // Debug logger for incoming Origin header on service-requests paths
 app.use((req, _res, next) => {
   if (req.path.startsWith('/service-requests')) {
     console.log('Incoming request Origin header:', req.headers.origin);
+    console.log('Request method:', req.method);
+    console.log('Request path:', req.path);
   }
   next();
 });
@@ -45,21 +49,36 @@ app.use((req, _res, next) => {
 // for development environments.
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (curl, server-to-server)
-    if (!origin) return callback(null, true);
-
-    // Allow explicit allowed origins
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-
-    // Allow local host variants (ports, IPv4 loopback, and Vite dev host)
-    if (/localhost(:\d+)?$/.test(origin) || /127\.0\.0\.1(:\d+)?$/.test(origin) || origin.includes('5173')) {
+    console.log('CORS check for origin:', origin);
+    
+    // Allow requests with no origin (curl, server-to-server, mobile apps)
+    if (!origin) {
+      console.log('No origin - allowing request');
       return callback(null, true);
     }
 
-    // Otherwise deny but don't throw - let CORS middleware reject by not adding headers
+    // Allow explicit allowed origins
+    if (allowedOrigins.includes(origin)) {
+      console.log('Origin in allowed list - allowing request');
+      return callback(null, true);
+    }
+
+    // Allow local host variants (ports, IPv4 loopback, and Vite dev host)
+    if (/^https?:\/\/localhost(:\d+)?$/.test(origin) || 
+        /^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(origin) || 
+        origin.includes('5173') || 
+        origin.includes('4173')) {
+      console.log('Local development origin - allowing request');
+      return callback(null, true);
+    }
+
+    // Otherwise deny
+    console.log('Origin not allowed:', origin);
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
   optionsSuccessStatus: 200
 }));
 

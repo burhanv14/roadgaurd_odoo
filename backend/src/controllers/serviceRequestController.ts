@@ -493,6 +493,12 @@ class ServiceRequestController {
     console.log('Request params:', req.params);
     console.log('Request body:', req.body);
     console.log('User info:', { userId: req.user?.userId, role: req.user?.role });
+    console.log('Request headers:', {
+      origin: req.headers.origin,
+      'user-agent': req.headers['user-agent'],
+      'content-type': req.headers['content-type'],
+      authorization: req.headers.authorization ? 'Bearer [REDACTED]' : 'None'
+    });
     
     try {
       const { id } = req.params;
