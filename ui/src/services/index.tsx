@@ -403,3 +403,6 @@ export { translationService } from './translation.service';
 
 // Export workshop service
 export { workshopService } from './workshop.service';
+
+// Export calendar service
+export { default as calendarService } from './calendar.service';

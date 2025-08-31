@@ -1,197 +1,236 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { CalendarIcon, ListIcon, ClockIcon, CheckCircleIcon, AlertTriangleIcon } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import CalendarView from '@/components/CalendarView';
+import { useCalendar } from '@/hooks/useCalendar';
 
 const MechanicShopPanel: React.FC = () => {
   const { user } = useAuth();
+  const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
+  const { events, loading } = useCalendar();
+
+  // Get today's events
+  const today = new Date();
+  const todayEvents = events.filter(event => {
+    if (!event.start) return false;
+    const eventDate = new Date(event.start);
+    return (
+      eventDate.getDate() === today.getDate() &&
+      eventDate.getMonth() === today.getMonth() &&
+      eventDate.getFullYear() === today.getFullYear()
+    );
+  });
+
+  // Get status counts
+  const completedToday = todayEvents.filter(e => e.status === 'completed').length;
+  const pendingTasks = events.filter(e => e.status === 'pending' || e.status === 'assigned').length;
+  const inProgressTasks = events.filter(e => e.status === 'in_progress').length;
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
+    <div className="container mx-auto px-4 py-6 space-y-6">
+      {/* Header */}
+      <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
           Mechanic Dashboard
         </h1>
         <p className="text-gray-600 dark:text-gray-400 mt-2">
-          Welcome back, {user?.name}! Manage your assigned tasks and services.
+          Welcome back, {user?.name}! Here's your schedule and task overview.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* Assigned Tasks */}
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              Assigned Tasks
-              <Badge variant="secondary">5</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <div>
-                  <p className="font-medium">Oil Change</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Toyota Camry</p>
-                </div>
-                <Badge variant="outline">In Progress</Badge>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Today's Tasks</p>
+                <p className="text-2xl font-bold text-blue-600">{todayEvents.length}</p>
               </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <div>
-                  <p className="font-medium">Brake Inspection</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Honda Civic</p>
-                </div>
-                <Badge variant="outline">Pending</Badge>
-              </div>
-            </div>
-            <Button className="w-full mt-4" variant="outline">
-              View All Tasks
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Today's Schedule */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Today's Schedule</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                <div>
-                  <p className="font-medium">9:00 AM</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Engine Diagnostic</p>
-                </div>
-                <Badge variant="default">Confirmed</Badge>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                <div>
-                  <p className="font-medium">2:00 PM</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Tire Rotation</p>
-                </div>
-                <Badge variant="default">Confirmed</Badge>
-              </div>
-            </div>
-            <Button className="w-full mt-4" variant="outline">
-              View Full Schedule
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Performance Stats */}
-        <Card>
-          <CardHeader>
-            <CardTitle>This Week's Performance</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-400">Tasks Completed</span>
-                <span className="font-bold text-2xl text-green-600">12</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-400">Customer Rating</span>
-                <span className="font-bold text-2xl text-blue-600">4.8</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-400">Hours Worked</span>
-                <span className="font-bold text-2xl text-purple-600">32</span>
-              </div>
-            </div>
-            <Button className="w-full mt-4" variant="outline">
-              View Details
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Quick Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <Button className="w-full" variant="default">
-                Start New Task
-              </Button>
-              <Button className="w-full" variant="outline">
-                Update Task Status
-              </Button>
-              <Button className="w-full" variant="outline">
-                Request Parts
-              </Button>
-              <Button className="w-full" variant="outline">
-                Report Issue
-              </Button>
+              <CalendarIcon className="h-8 w-8 text-blue-500" />
             </div>
           </CardContent>
         </Card>
 
-        {/* Recent Activity */}
         <Card>
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-                <div>
-                  <p className="text-sm font-medium">Completed brake pad replacement</p>
-                  <p className="text-xs text-gray-500">2 hours ago</p>
-                </div>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Completed Today</p>
+                <p className="text-2xl font-bold text-green-600">{completedToday}</p>
               </div>
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-                <div>
-                  <p className="text-sm font-medium">Started oil change service</p>
-                  <p className="text-xs text-gray-500">4 hours ago</p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2"></div>
-                <div>
-                  <p className="text-sm font-medium">Updated task status</p>
-                  <p className="text-xs text-gray-500">6 hours ago</p>
-                </div>
-              </div>
+              <CheckCircleIcon className="h-8 w-8 text-green-500" />
             </div>
           </CardContent>
         </Card>
 
-        {/* Notifications */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              Notifications
-              <Badge variant="destructive">3</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                <p className="text-sm font-medium text-red-800 dark:text-red-200">
-                  New urgent task assigned
-                </p>
-                <p className="text-xs text-red-600 dark:text-red-300">
-                  5 minutes ago
-                </p>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">In Progress</p>
+                <p className="text-2xl font-bold text-orange-600">{inProgressTasks}</p>
               </div>
-              <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                  Parts delivery scheduled
-                </p>
-                <p className="text-xs text-yellow-600 dark:text-yellow-300">
-                  1 hour ago
-                </p>
-              </div>
+              <ClockIcon className="h-8 w-8 text-orange-500" />
             </div>
-            <Button className="w-full mt-4" variant="outline">
-              View All
-            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Pending</p>
+                <p className="text-2xl font-bold text-yellow-600">{pendingTasks}</p>
+              </div>
+              <AlertTriangleIcon className="h-8 w-8 text-yellow-500" />
+            </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* View Toggle */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Button
+            variant={viewMode === 'calendar' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('calendar')}
+            className="flex items-center gap-2"
+          >
+            <CalendarIcon className="h-4 w-4" />
+            Calendar View
+          </Button>
+          <Button
+            variant={viewMode === 'list' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('list')}
+            className="flex items-center gap-2"
+          >
+            <ListIcon className="h-4 w-4" />
+            List View
+          </Button>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      {viewMode === 'calendar' ? (
+        <CalendarView />
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Today's Schedule */}
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>Today's Schedule</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="flex justify-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                </div>
+              ) : todayEvents.length > 0 ? (
+                <div className="space-y-3">
+                  {todayEvents.map(event => {
+                    const startTime = event.start ? new Date(event.start) : null;
+                    const getStatusColor = (status: string) => {
+                      switch (status.toLowerCase()) {
+                        case 'pending':
+                          return 'bg-yellow-100 text-yellow-800';
+                        case 'assigned':
+                          return 'bg-blue-100 text-blue-800';
+                        case 'in_progress':
+                          return 'bg-orange-100 text-orange-800';
+                        case 'completed':
+                          return 'bg-green-100 text-green-800';
+                        default:
+                          return 'bg-gray-100 text-gray-800';
+                      }
+                    };
+
+                    return (
+                      <div key={event.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            {startTime && (
+                              <span className="text-sm font-medium text-blue-600">
+                                {startTime.toLocaleTimeString('en-US', { 
+                                  hour: 'numeric', 
+                                  minute: '2-digit',
+                                  hour12: true 
+                                })}
+                              </span>
+                            )}
+                            <Badge className={getStatusColor(event.status)}>
+                              {event.status.replace('_', ' ').toUpperCase()}
+                            </Badge>
+                          </div>
+                          <h4 className="font-medium">{event.title}</h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">{event.description}</p>
+                          <p className="text-xs text-gray-500 mt-1">{event.location.address}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <CalendarIcon className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                  <p>No tasks scheduled for today</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Upcoming Tasks */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Upcoming Tasks</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {events
+                  .filter(event => {
+                    if (!event.start) return false;
+                    const eventDate = new Date(event.start);
+                    return eventDate > today;
+                  })
+                  .slice(0, 5)
+                  .map(event => {
+                    const eventDate = event.start ? new Date(event.start) : null;
+                    return (
+                      <div key={event.id} className="p-3 border rounded-lg">
+                        <h4 className="font-medium text-sm">{event.title}</h4>
+                        {eventDate && (
+                          <p className="text-xs text-gray-500">
+                            {eventDate.toLocaleDateString('en-US', { 
+                              month: 'short', 
+                              day: 'numeric',
+                              hour: 'numeric',
+                              minute: '2-digit',
+                              hour12: true
+                            })}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+              </div>
+              {events.filter(event => {
+                if (!event.start) return false;
+                const eventDate = new Date(event.start);
+                return eventDate > today;
+              }).length === 0 && (
+                <div className="text-center py-4 text-gray-500">
+                  <p className="text-sm">No upcoming tasks</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };

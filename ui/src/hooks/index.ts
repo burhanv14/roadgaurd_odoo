@@ -6,3 +6,4 @@ export * from './useLocation';
 export * from './useHeaderVisibility';
 export * from './useWorkshops';
 export * from './useWorkshopDetails';
+export * from './useCalendar';

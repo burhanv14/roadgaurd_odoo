@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { Op } from 'sequelize';
 import Worker from '../models/Worker';
 import Workshop from '../models/Workshop';
 import User from '../models/User';
@@ -568,6 +569,136 @@ class WorkerController {
       res.status(500).json({
         success: false,
         message: 'Failed to get available workers',
+        error: error.message
+      } as IApiResponse);
+    }
+  }
+
+  // Get worker's calendar/schedule
+  static async getWorkerCalendar(req: IAuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      const userRole = req.user?.role;
+      const { startDate, endDate } = req.query;
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        } as IApiResponse);
+        return;
+      }
+
+      // Find the worker record for this user
+      const worker = await Worker.findOne({
+        where: { user_id: userId },
+        include: [
+          {
+            model: User,
+            as: 'user',
+            attributes: ['id', 'name', 'email']
+          }
+        ]
+      });
+
+      if (!worker && userRole !== UserRole.ADMIN) {
+        res.status(403).json({
+          success: false,
+          message: 'Access denied. Worker profile not found'
+        } as IApiResponse);
+        return;
+      }
+
+      // Build date filter
+      const dateFilter: any = {};
+      if (startDate && endDate) {
+        dateFilter[Op.or] = [
+          {
+            scheduled_start_time: {
+              [Op.between]: [new Date(startDate as string), new Date(endDate as string)]
+            }
+          },
+          {
+            scheduled_end_time: {
+              [Op.between]: [new Date(startDate as string), new Date(endDate as string)]
+            }
+          }
+        ];
+      } else if (startDate) {
+        dateFilter.scheduled_start_time = {
+          [Op.gte]: new Date(startDate as string)
+        };
+      } else if (endDate) {
+        dateFilter.scheduled_end_time = {
+          [Op.lte]: new Date(endDate as string)
+        };
+      }
+
+      // Get assigned service requests for the worker
+      const serviceRequests = await ServiceRequest.findAll({
+        where: {
+          assigned_worker_id: worker?.id,
+          ...dateFilter
+        },
+        include: [
+          {
+            model: User,
+            as: 'user',
+            attributes: ['id', 'name', 'email', 'phone']
+          }
+        ],
+        order: [['scheduled_start_time', 'ASC']]
+      });
+
+      // Format the calendar data
+      const calendarData = serviceRequests.map(request => {
+        const requestData = request as any; // Type assertion to access included relations
+        return {
+          id: request.id,
+          title: request.name,
+          description: request.description,
+          start: request.scheduled_start_time,
+          end: request.scheduled_end_time,
+          status: request.status,
+          priority: request.priority,
+          service_type: request.service_type,
+          location: {
+            address: request.location_address,
+            latitude: request.location_latitude,
+            longitude: request.location_longitude
+          },
+          customer: requestData.user ? {
+            name: requestData.user.name,
+            email: requestData.user.email,
+            phone: requestData.user.phone
+          } : null,
+          issue_description: request.issue_description,
+          image_urls: request.image_urls,
+          estimated_completion: request.estimated_completion,
+          actual_completion: request.actual_completion
+        };
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Worker calendar retrieved successfully',
+        data: {
+          worker: {
+            id: worker?.id,
+            name: worker?.name,
+            email: worker?.email,
+            specialization: worker?.specialization,
+            is_available: worker?.is_available
+          },
+          calendar: calendarData
+        }
+      } as IApiResponse);
+
+    } catch (error: any) {
+      console.error('Error retrieving worker calendar:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve worker calendar',
         error: error.message
       } as IApiResponse);
     }
