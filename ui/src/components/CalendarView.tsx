@@ -170,28 +170,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({ className }) => {
     );
   }
 
-  // Show empty calendar if no events
-  if (!loading && !error && events.length === 0) {
-    return (
-      <div className={`${className || ''}`}>
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CalendarIcon className="h-5 w-5" />
-              Calendar
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-8">
-              <CalendarIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 mb-2">No scheduled appointments</p>
-              <p className="text-sm text-gray-500">Your calendar is empty for this period.</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  // Note: always render the calendar grid. If there are no events we show
+  // a non-blocking empty-state banner above the grid so the month view is
+  // still visible (empty calendar) instead of returning early.
 
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -227,6 +208,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({ className }) => {
           </div>
         </CardHeader>
         <CardContent className="pt-0">
+          {/* Empty state banner (non-blocking) */}
+          {events.length === 0 && (
+            <div className="text-center py-4">
+              <CalendarIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+              <p className="text-sm text-gray-600">No scheduled appointments for this month.</p>
+            </div>
+          )}
           {/* Calendar Grid */}
           <div className="grid grid-cols-7 gap-0.5">
             {/* Week day headers */}
