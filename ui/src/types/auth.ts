@@ -32,6 +32,7 @@ export interface SignupRequest {
   name: string;
   phone: string;
   role?: UserRole; // Made optional to match backend
+  workshop_id?: string; // Optional workshop selection for mechanics
 }
 
 // Email verification request DTOs
@@ -64,10 +65,19 @@ export interface DeleteAccountRequest {
   reason?: string;
 }
 
+// Worker interface for mechanic users
+export interface Worker {
+  id: string;
+  workshop_id: string;
+  specialization: string[];
+  is_available: boolean;
+}
+
 // Authentication response DTOs
 export interface AuthResponse {
   user: User;
   token: string;
+  worker?: Worker; // Optional worker data for mechanic users
   // Removed refreshToken and expiresAt as backend doesn't provide them
 }
 
@@ -75,6 +85,7 @@ export interface AuthResponse {
 export interface AuthState {
   user: User | null;
   token: string | null;
+  worker: Worker | null; // Worker data for mechanic users
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;

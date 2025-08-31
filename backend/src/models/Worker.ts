@@ -90,12 +90,7 @@ Worker.init({
   specialization: {
     type: DataTypes.ARRAY(DataTypes.STRING),
     allowNull: false,
-    defaultValue: [],
-    validate: {
-      notEmpty: {
-        msg: 'At least one specialization is required'
-      }
-    }
+    defaultValue: []
   },
   is_available: {
     type: DataTypes.BOOLEAN,

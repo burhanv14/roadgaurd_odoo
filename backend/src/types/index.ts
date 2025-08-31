@@ -28,6 +28,7 @@ export interface ICreateUser {
   phone: string;
   password: string;
   role?: UserRole;
+  workshop_id?: string; // Optional workshop selection for mechanics
 }
 
 // User login payload

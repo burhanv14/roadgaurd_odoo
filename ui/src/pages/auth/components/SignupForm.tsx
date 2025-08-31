@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Select } from "@/components/ui/select";
 import { UserRole } from "@/types/auth";
 import { useAuthStore } from "@/stores/auth.store";
 import { useAuth } from "@/hooks/useAuth";
 import { getRoleRedirectPath } from "@/lib/role.utils";
+import { workshopService } from "@/services/workshop.service";
 
 // User type options for signup (excluding ADMIN)
 const USER_TYPE_OPTIONS = [
@@ -12,6 +13,13 @@ const USER_TYPE_OPTIONS = [
   { value: UserRole.MECHANIC_OWNER, label: "Mechanic Owner" },
   { value: UserRole.MECHANIC_EMPLOYEE, label: "Mechanic Employee" },
 ];
+
+// Workshop interface for selection
+interface WorkshopOption {
+  id: string;
+  name: string;
+  address: string;
+}
 
 export default function SignupForm() {
   const [step, setStep] = useState(1);
@@ -24,6 +32,9 @@ export default function SignupForm() {
   const [sending, setSending] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [workshops, setWorkshops] = useState<WorkshopOption[]>([]);
+  const [selectedWorkshopId, setSelectedWorkshopId] = useState("");
+  const [loadingWorkshops, setLoadingWorkshops] = useState(false);
 
   const navigate = useNavigate();
   const { 
@@ -39,6 +50,37 @@ export default function SignupForm() {
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const isPhoneValid = /^[0-9]{10,15}$/.test(phone.replace(/\D/g, ""));
   const isPasswordValid = password.length >= 8;
+
+  // Check if user type requires workshop selection
+  const requiresWorkshopSelection = userType === UserRole.MECHANIC_EMPLOYEE || userType === UserRole.MECHANIC_OWNER;
+
+  // Fetch available workshops when user type changes to mechanic
+  useEffect(() => {
+    if (requiresWorkshopSelection && step === 3) {
+      fetchWorkshops();
+    }
+  }, [userType, step]);
+
+  // Fetch available workshops
+  const fetchWorkshops = async () => {
+    setLoadingWorkshops(true);
+    try {
+      const response = await workshopService.getWorkshops({ status: 'OPEN' });
+      if (response.success && response.data.workshops) {
+        setWorkshops(response.data.workshops.map(workshop => ({
+          id: workshop.id,
+          name: workshop.name,
+          address: workshop.address
+        })));
+      }
+    } catch (error) {
+      console.error("Failed to fetch workshops:", error);
+      // Set empty array to prevent infinite loading state
+      setWorkshops([]);
+    } finally {
+      setLoadingWorkshops(false);
+    }
+  };
 
   // Step 1: Request email verification
   const handleRequestEmailVerification = async () => {
@@ -99,17 +141,30 @@ export default function SignupForm() {
       return;
     }
 
+    // For mechanics, require workshop selection
+    if (requiresWorkshopSelection && !selectedWorkshopId) {
+      alert("Please select a workshop to join.");
+      return;
+    }
+
     setSubmitting(true);
     clearError();
 
     try {
-      await signup({
+      const signupData: any = {
         name,
         email,
         phone,
         password,
         role: userType
-      });
+      };
+
+      // Add workshop_id if user is a mechanic
+      if (requiresWorkshopSelection && selectedWorkshopId) {
+        signupData.workshop_id = selectedWorkshopId;
+      }
+
+      await signup(signupData);
       
       // Redirect based on user role
       const redirectPath = getRoleRedirectPath(role);
@@ -120,8 +175,6 @@ export default function SignupForm() {
       setSubmitting(false);
     }
   };
-
-
 
   // Resend email verification
   const handleResendEmailVerification = async () => {
@@ -364,6 +417,42 @@ export default function SignupForm() {
                 />
               </div>
 
+              {/* Workshop Selection for Mechanics */}
+              {requiresWorkshopSelection && (
+                <div>
+                  <label htmlFor="workshop" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Select Workshop to Join
+                  </label>
+                  {loadingWorkshops ? (
+                    <div className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400">
+                      Loading workshops...
+                    </div>
+                  ) : workshops.length > 0 ? (
+                    <select
+                      id="workshop"
+                      value={selectedWorkshopId}
+                      onChange={(e) => setSelectedWorkshopId(e.target.value)}
+                      required
+                      className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white"
+                    >
+                      <option value="">Select a workshop</option>
+                      {workshops.map((workshop) => (
+                        <option key={workshop.id} value={workshop.id}>
+                          {workshop.name} - {workshop.address}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="block w-full px-3 py-2 border border-red-300 dark:border-red-700 rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400">
+                      No workshops available. Please contact support.
+                    </div>
+                  )}
+                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    Choose the workshop you want to work with.
+                  </p>
+                </div>
+              )}
+
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Password
@@ -389,7 +478,7 @@ export default function SignupForm() {
               <button
                 type="button"
                 onClick={handleSignup}
-                disabled={submitting || !isPhoneValid || !isPasswordValid}
+                disabled={submitting || !isPhoneValid || !isPasswordValid || (requiresWorkshopSelection && !selectedWorkshopId)}
                 className="flex-1 px-4 py-3 rounded-md text-white font-semibold bg-amber-600 hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 disabled:bg-amber-800 disabled:cursor-not-allowed transition-colors"
               >
                 {submitting ? "Creating account..." : "Create account"}

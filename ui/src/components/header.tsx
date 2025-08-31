@@ -461,7 +461,7 @@ export function RAHeader({ className, fixed = true }: HeaderProps) {
                       className="flex items-center gap-3 w-full px-4 py-3 text-left transition-all duration-200 rounded-xl mx-2 hover:bg-gray-100/60 dark:hover:bg-gray-800/60 hover:scale-95 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
                     >
                       <User className="w-5 h-5" />
-                      <span className="font-medium">Profile Settings</span>
+                      <span className="font-medium">Profile</span>
                     </button>
                     
                     <button

@@ -704,6 +704,77 @@ class WorkerController {
     }
   }
 
+  // Get worker details by user ID
+  static async getWorkerByUserId(req: IAuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      const targetUserId = req.params['userId'] || userId; // Allow fetching for self or specified user
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        } as IApiResponse);
+        return;
+      }
+
+      // Find worker by user_id
+      const worker = await Worker.findOne({
+        where: { user_id: targetUserId },
+        include: [
+          {
+            model: Workshop,
+            as: 'workshop',
+            attributes: ['id', 'name', 'address', 'contact_phone']
+          },
+          {
+            model: User,
+            as: 'user',
+            attributes: ['id', 'name', 'email', 'phone', 'role']
+          }
+        ]
+      });
+
+      if (!worker) {
+        res.status(404).json({
+          success: false,
+          message: 'Worker not found for this user'
+        } as IApiResponse);
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Worker details retrieved successfully',
+        data: {
+          worker: {
+            id: worker.id,
+            workshop_id: worker.workshop_id,
+            user_id: worker.user_id,
+            name: worker.name,
+            phone: worker.phone,
+            email: worker.email,
+            specialization: worker.specialization,
+            is_available: worker.is_available,
+            current_location_latitude: worker.current_location_latitude,
+            current_location_longitude: worker.current_location_longitude,
+            createdAt: worker.createdAt,
+            updatedAt: worker.updatedAt,
+            workshop: (worker as any).workshop,
+            user: (worker as any).user
+          }
+        }
+      } as IApiResponse);
+    } catch (error: any) {
+      console.error('Error fetching worker by user ID:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve worker details',
+        error: error.message
+      } as IApiResponse);
+    }
+  }
+
   // Helper method to check if user owns a workshop
   private static async userOwnsWorkshop(userId: string, workshopId: string): Promise<boolean> {
     const workshop = await Workshop.findOne({

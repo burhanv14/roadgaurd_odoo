@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Toast } from '@/components/ui/toast';
 import { useAuth } from '@/hooks/useAuth';
 import { serviceRequestService } from '@/services/serviceRequest.service';
 import { workshopService } from '@/services/workshop.service';
 import type { ServiceRequest } from '@/services/serviceRequest.service';
 import type { Worker } from '@/services/workshop.service';
-import { ArrowLeft, Calendar, MapPin, User, Wrench, Phone, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, User, Wrench, Phone, AlertCircle, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface AssignMechanicsProps {
@@ -29,77 +30,80 @@ const AssignMechanics: React.FC<AssignMechanicsProps> = ({ workshopId }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [assigningWorker, setAssigningWorker] = useState<string | null>(null);
+  const [selectedWorkers, setSelectedWorkers] = useState<Record<string, string>>({});
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastType, setToastType] = useState<'success' | 'error'>('success');
 
   // Fetch service requests and workers for all workshops
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!user?.id) return;
+  const fetchData = async () => {
+    if (!user?.id) return;
+    
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Get all workshops owned by the user
+      const workshopsResponse = await workshopService.getWorkshopsByOwnerId(user.id.toString());
       
-      try {
-        setLoading(true);
-        setError(null);
-
-        // Get all workshops owned by the user
-        const workshopsResponse = await workshopService.getWorkshopsByOwnerId(user.id.toString());
-        
-        if (!workshopsResponse.success || !workshopsResponse.data || workshopsResponse.data.length === 0) {
-          setError('No workshops found for this user');
-          return;
-        }
-
-        // Fetch data for each workshop
-        const workshopsWithData: WorkshopWithData[] = await Promise.all(
-          workshopsResponse.data.map(async (workshop) => {
-            try {
-              // Fetch service requests for this workshop
-              const serviceRequestsResponse = await serviceRequestService.getServiceRequests({
-                workshop_id: workshop.id,
-                status: undefined // Get all statuses
-              });
-
-              // Filter to show only requests that need worker assignment or are in progress
-              const relevantRequests = serviceRequestsResponse.success 
-                ? serviceRequestsResponse.data.serviceRequests.filter(
-                    (request: ServiceRequest) => 
-                      ['PENDING', 'ACCEPTED', 'IN_PROGRESS'].includes(request.status) &&
-                      request.workshop_id === workshop.id
-                  )
-                : [];
-
-              // Fetch workers for this workshop
-              const workersResponse = await workshopService.getWorkshopWorkers(workshop.id);
-              const workers = workersResponse.success ? workersResponse.data : [];
-
-              return {
-                id: workshop.id,
-                name: workshop.name,
-                address: workshop.address,
-                serviceRequests: relevantRequests,
-                workers: workers
-              };
-            } catch (error) {
-              console.error(`Error fetching data for workshop ${workshop.id}:`, error);
-              return {
-                id: workshop.id,
-                name: workshop.name,
-                address: workshop.address,
-                serviceRequests: [],
-                workers: []
-              };
-            }
-          })
-        );
-
-        setWorkshopsData(workshopsWithData);
-
-      } catch (err) {
-        console.error('Error fetching data:', err);
-        setError('An error occurred while fetching data');
-      } finally {
-        setLoading(false);
+      if (!workshopsResponse.success || !workshopsResponse.data || workshopsResponse.data.length === 0) {
+        setError('No workshops found for this user');
+        return;
       }
-    };
 
+      // Fetch data for each workshop
+      const workshopsWithData: WorkshopWithData[] = await Promise.all(
+        workshopsResponse.data.map(async (workshop) => {
+          try {
+            // Fetch service requests for this workshop
+            const serviceRequestsResponse = await serviceRequestService.getServiceRequests({
+              workshop_id: workshop.id,
+              status: undefined // Get all statuses
+            });
+
+            // Filter to show only requests that need worker assignment or are in progress
+            const relevantRequests = serviceRequestsResponse.success 
+              ? serviceRequestsResponse.data.serviceRequests.filter(
+                  (request: ServiceRequest) => 
+                    ['PENDING', 'ACCEPTED', 'IN_PROGRESS'].includes(request.status) &&
+                    request.workshop_id === workshop.id
+                )
+              : [];
+
+            // Fetch workers for this workshop
+            const workersResponse = await workshopService.getWorkshopWorkers(workshop.id);
+            const workers = workersResponse.success ? workersResponse.data : [];
+
+            return {
+              id: workshop.id,
+              name: workshop.name,
+              address: workshop.address,
+              serviceRequests: relevantRequests,
+              workers: workers
+            };
+          } catch (error) {
+            console.error(`Error fetching data for workshop ${workshop.id}:`, error);
+            return {
+              id: workshop.id,
+              name: workshop.name,
+              address: workshop.address,
+              serviceRequests: [],
+              workers: []
+            };
+          }
+        })
+      );
+
+      setWorkshopsData(workshopsWithData);
+
+    } catch (err) {
+      console.error('Error fetching data:', err);
+      setError('An error occurred while fetching data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
   }, [user?.id, workshopId]);
 
@@ -112,19 +116,53 @@ const AssignMechanics: React.FC<AssignMechanicsProps> = ({ workshopId }) => {
       if (response.success) {
         // Update the service request in the local state
         setWorkshopsData(prevWorkshops =>
-          prevWorkshops.map(workshop => ({
-            ...workshop,
-            serviceRequests: workshop.serviceRequests.map(request =>
-              request.id === serviceRequestId
-                ? { ...request, assigned_worker_id: workerId, assignedWorker: response.data.assignedWorker }
-                : request
-            )
-          }))
+          prevWorkshops.map(workshop => {
+            const currentServiceRequest = workshop.serviceRequests.find(req => req.id === serviceRequestId);
+            return {
+              ...workshop,
+              serviceRequests: workshop.serviceRequests.map(request =>
+                request.id === serviceRequestId
+                  ? { ...request, assigned_worker_id: workerId, assignedWorker: response.data.assignedWorker }
+                  : request
+              ),
+              // Update worker availability in the local state
+              workers: workshop.workers.map(worker => {
+                if (workerId && worker.id === workerId) {
+                  // Mark assigned worker as not available
+                  return { ...worker, isAvailable: false };
+                } else if (!workerId && currentServiceRequest?.assigned_worker_id === worker.id) {
+                  // Mark previously assigned worker as available when unassigning
+                  return { ...worker, isAvailable: true };
+                }
+                return worker;
+              })
+            };
+          })
         );
+        
+        // Clear the selected worker for this request
+        setSelectedWorkers(prev => {
+          const updated = { ...prev };
+          delete updated[serviceRequestId];
+          return updated;
+        });
+
+        // Show success message
+        setToastType('success');
+        setToastMessage(workerId ? 'Worker assigned successfully!' : 'Worker unassigned successfully!');
+        setTimeout(() => setToastMessage(null), 3000);
+
+        // Refresh the workshops data to get updated worker availability
+        setTimeout(() => {
+          fetchData();
+        }, 1000);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error assigning worker:', err);
-      setError('Failed to assign worker');
+      setToastType('error');
+      const errorMessage = err.message || 'Failed to assign worker. Please try again.';
+      setToastMessage(errorMessage);
+      setTimeout(() => setToastMessage(null), 3000);
     } finally {
       setAssigningWorker(null);
     }
@@ -185,7 +223,7 @@ const AssignMechanics: React.FC<AssignMechanicsProps> = ({ workshopId }) => {
             <div className="text-center">
               <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
               <div className="text-lg text-red-600">{error}</div>
-              <Button onClick={() => navigate('/dashboard/manager')} className="mt-4">
+              <Button onClick={() => navigate('/managerShopPanel')} className="mt-4">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Dashboard
               </Button>
@@ -204,7 +242,7 @@ const AssignMechanics: React.FC<AssignMechanicsProps> = ({ workshopId }) => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Button 
-                onClick={() => navigate('/dashboard/manager')}
+                onClick={() => navigate('/managerShopPanel')}
                 variant="outline"
                 size="sm"
               >
@@ -282,9 +320,6 @@ const AssignMechanics: React.FC<AssignMechanicsProps> = ({ workshopId }) => {
                             </div>
                             <div className="text-right">
                               <div className="text-sm text-gray-500">
-                                Request ID: {request.id.slice(0, 8)}...
-                              </div>
-                              <div className="text-sm text-gray-500">
                                 Created: {new Date(request.createdAt).toLocaleDateString()}
                               </div>
                             </div>
@@ -351,15 +386,22 @@ const AssignMechanics: React.FC<AssignMechanicsProps> = ({ workshopId }) => {
                               <div className="bg-green-50 p-4 rounded-lg">
                                 <div className="flex items-center justify-between">
                                   <div>
-                                    <div className="font-medium text-green-900">
-                                      {request.assignedWorker.name}
+                                    <div className="font-medium text-green-900 mb-2">
+                                      <div className="flex items-center">
+                                        <Wrench className="h-4 w-4 mr-2" />
+                                        Assigned Worker: {request.assignedWorker.name}
+                                      </div>
                                     </div>
-                                    <div className="text-sm text-green-700 flex items-center space-x-4 mt-1">
+                                    <div className="text-sm text-green-700 flex items-center space-x-4">
                                       <span className="flex items-center">
                                         <Phone className="h-3 w-3 mr-1" />
                                         {request.assignedWorker.phone}
                                       </span>
-                                      <span>{request.assignedWorker.specialization}</span>
+                                      <span className="flex items-center">
+                                        <Badge variant="secondary" className="text-xs">
+                                          {request.assignedWorker.specialization}
+                                        </Badge>
+                                      </span>
                                     </div>
                                   </div>
                                   <div className="flex space-x-2">
@@ -368,8 +410,16 @@ const AssignMechanics: React.FC<AssignMechanicsProps> = ({ workshopId }) => {
                                       variant="outline"
                                       onClick={() => handleAssignWorker(request.id, null)}
                                       disabled={assigningWorker === request.id}
+                                      className="border-red-300 text-red-600 hover:bg-red-50"
                                     >
-                                      {assigningWorker === request.id ? 'Unassigning...' : 'Unassign'}
+                                      {assigningWorker === request.id ? (
+                                        <>
+                                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600 mr-2"></div>
+                                          Unassigning...
+                                        </>
+                                      ) : (
+                                        'Unassign Worker'
+                                      )}
                                     </Button>
                                   </div>
                                 </div>
@@ -377,21 +427,22 @@ const AssignMechanics: React.FC<AssignMechanicsProps> = ({ workshopId }) => {
                             ) : (
                               // No worker assigned
                               <div className="bg-yellow-50 p-4 rounded-lg">
-                                <div className="flex items-center justify-between">
+                                <div className="flex flex-col space-y-3">
                                   <div className="text-yellow-800">
                                     <div className="font-medium">No worker assigned</div>
                                     <div className="text-sm">Select a worker to assign to this request</div>
                                   </div>
-                                  <div className="flex items-center space-x-2">
+                                  
+                                  {/* Worker Selection */}
+                                  <div className="flex flex-col space-y-2">
                                     <select
-                                      className="px-3 py-2 border border-gray-300 rounded-md text-sm"
-                                      onChange={(e) => {
-                                        if (e.target.value) {
-                                          handleAssignWorker(request.id, e.target.value);
-                                        }
-                                      }}
+                                      className="px-3 py-2 border border-gray-300 rounded-md text-sm bg-white"
+                                      value={selectedWorkers[request.id] || ""}
+                                      onChange={(e) => setSelectedWorkers(prev => ({
+                                        ...prev,
+                                        [request.id]: e.target.value
+                                      }))}
                                       disabled={assigningWorker === request.id}
-                                      defaultValue=""
                                     >
                                       <option value="">Select Worker</option>
                                       {workshop.workers
@@ -402,8 +453,48 @@ const AssignMechanics: React.FC<AssignMechanicsProps> = ({ workshopId }) => {
                                           </option>
                                         ))}
                                     </select>
-                                    {assigningWorker === request.id && (
-                                      <div className="text-sm text-gray-500">Assigning...</div>
+                                    
+                                    {/* Assign Button */}
+                                    {selectedWorkers[request.id] && (
+                                      <div className="flex items-center space-x-2">
+                                        <Button
+                                          size="sm"
+                                          onClick={() => handleAssignWorker(request.id, selectedWorkers[request.id])}
+                                          disabled={assigningWorker === request.id}
+                                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                                        >
+                                          {assigningWorker === request.id ? (
+                                            <>
+                                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                              Assigning...
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Wrench className="h-4 w-4 mr-2" />
+                                              Assign Worker
+                                            </>
+                                          )}
+                                        </Button>
+                                        
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => setSelectedWorkers(prev => {
+                                            const updated = { ...prev };
+                                            delete updated[request.id];
+                                            return updated;
+                                          })}
+                                          disabled={assigningWorker === request.id}
+                                        >
+                                          Cancel
+                                        </Button>
+                                      </div>
+                                    )}
+                                    
+                                    {workshop.workers.filter((worker: Worker) => worker.isAvailable).length === 0 && (
+                                      <div className="text-sm text-orange-600 bg-orange-50 p-2 rounded">
+                                        No available workers in this workshop
+                                      </div>
                                     )}
                                   </div>
                                 </div>
@@ -437,6 +528,25 @@ const AssignMechanics: React.FC<AssignMechanicsProps> = ({ workshopId }) => {
           </div>
         )}
       </div>
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <Toast 
+          variant={toastType === 'error' ? 'destructive' : 'success'}
+          className={`fixed top-4 right-4 z-50 ${
+            toastType === 'success' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'
+          }`}
+        >
+          <div className="flex items-center">
+            {toastType === 'success' ? (
+              <CheckCircle className="h-4 w-4 mr-2" />
+            ) : (
+              <AlertCircle className="h-4 w-4 mr-2" />
+            )}
+            {toastMessage}
+          </div>
+        </Toast>
+      )}
     </div>
   );
 };

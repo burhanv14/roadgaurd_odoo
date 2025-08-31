@@ -344,7 +344,23 @@ class ServiceRequestController {
       }
 
       // Update the service request
+      const previousStatus = serviceRequest.status;
       await serviceRequest.update(updateData);
+
+      // Update worker availability based on status changes
+      if (updateData.status && serviceRequest.assigned_worker_id) {
+        const assignedWorker = await Worker.findByPk(serviceRequest.assigned_worker_id);
+        if (assignedWorker) {
+          // Make worker available when service is completed or cancelled
+          if (updateData.status === 'COMPLETED' || updateData.status === 'CANCELLED') {
+            await assignedWorker.update({ is_available: true });
+          }
+          // Make worker unavailable when service is in progress or accepted
+          else if (updateData.status === 'IN_PROGRESS' || updateData.status === 'ACCEPTED') {
+            await assignedWorker.update({ is_available: false });
+          }
+        }
+      }
 
       // Fetch updated service request with associations
       const updatedServiceRequest = await ServiceRequest.findByPk(id, {
@@ -473,13 +489,21 @@ class ServiceRequestController {
 
   // Assign worker to service request
   static async assignWorker(req: IAuthenticatedRequest, res: Response): Promise<void> {
+    console.log('=== ASSIGN WORKER ENDPOINT CALLED ===');
+    console.log('Request params:', req.params);
+    console.log('Request body:', req.body);
+    console.log('User info:', { userId: req.user?.userId, role: req.user?.role });
+    
     try {
       const { id } = req.params;
       const { assigned_worker_id } = req.body;
       const userId = req.user?.userId;
       const userRole = req.user?.role;
 
+      console.log('Extracted values:', { id, assigned_worker_id, userId, userRole });
+
       if (!userId) {
+        console.log('Authentication required - no userId');
         res.status(401).json({
           success: false,
           message: 'Authentication required'
@@ -487,8 +511,12 @@ class ServiceRequestController {
         return;
       }
 
+      console.log('Finding service request with id:', id);
       const serviceRequest = await ServiceRequest.findByPk(id);
+      console.log('Service request found:', serviceRequest ? 'YES' : 'NO');
+      
       if (!serviceRequest) {
+        console.log('Service request not found');
         res.status(404).json({
           success: false,
           message: 'Service request not found'
@@ -496,8 +524,16 @@ class ServiceRequestController {
         return;
       }
 
+      console.log('Service request details:', {
+        id: serviceRequest.id,
+        workshop_id: serviceRequest.workshop_id,
+        assigned_worker_id: serviceRequest.assigned_worker_id,
+        status: serviceRequest.status
+      });
+
       // Check if service request has a workshop assigned
       if (!serviceRequest.workshop_id) {
+        console.log('Service request has no workshop assigned');
         res.status(400).json({
           success: false,
           message: 'Service request must be assigned to a workshop first'
@@ -505,13 +541,17 @@ class ServiceRequestController {
         return;
       }
 
+      console.log('Checking user access to workshop:', serviceRequest.workshop_id);
       // Check if user has access to this workshop
       const hasAccess = (
         userRole === UserRole.ADMIN ||
         await this.userOwnsWorkshop(userId, serviceRequest.workshop_id)
       );
 
+      console.log('User has access:', hasAccess);
+
       if (!hasAccess) {
+        console.log('Access denied for user');
         res.status(403).json({
           success: false,
           message: 'Access denied'
@@ -519,7 +559,7 @@ class ServiceRequestController {
         return;
       }
 
-      // If worker is being assigned, verify they belong to the workshop
+      // If worker is being assigned, verify they belong to the workshop and update availability
       if (assigned_worker_id) {
         const worker = await Worker.findOne({
           where: {
@@ -535,12 +575,37 @@ class ServiceRequestController {
           } as IApiResponse);
           return;
         }
+
+        // Check if worker is available
+        if (!worker.is_available) {
+          res.status(400).json({
+            success: false,
+            message: 'Selected worker is currently not available'
+          } as IApiResponse);
+          return;
+        }
+      }
+
+      // If unassigning a worker, make them available again
+      if (!assigned_worker_id && serviceRequest.assigned_worker_id) {
+        const previousWorker = await Worker.findByPk(serviceRequest.assigned_worker_id);
+        if (previousWorker) {
+          await previousWorker.update({ is_available: true });
+        }
       }
 
       // Update service request with assigned worker
       await serviceRequest.update({
         assigned_worker_id: assigned_worker_id || null
       });
+
+      // If assigning a worker, mark them as busy
+      if (assigned_worker_id) {
+        const worker = await Worker.findByPk(assigned_worker_id);
+        if (worker) {
+          await worker.update({ is_available: false });
+        }
+      }
 
       // Fetch updated service request
       const updatedServiceRequest = await ServiceRequest.findByPk(id, {
@@ -557,7 +622,11 @@ class ServiceRequestController {
         data: updatedServiceRequest
       } as IApiResponse);
     } catch (error: any) {
-      console.error('Error assigning worker:', error);
+      console.error('=== ERROR IN ASSIGN WORKER ===');
+      console.error('Error details:', error);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+      
       res.status(500).json({
         success: false,
         message: 'Failed to assign worker',

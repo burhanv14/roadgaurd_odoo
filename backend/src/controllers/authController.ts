@@ -1,9 +1,10 @@
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { Request, Response } from 'express';
-import { Op } from 'sequelize';
-import { User, Otp } from '../models';
+import { Op, Transaction } from 'sequelize';
+import { User, Otp, Worker, Workshop } from '../models';
 import { ICreateUser, ILoginUser, IAuthenticatedRequest, IJwtPayload, UserRole } from '../types';
 import { sendOtpEmail } from '../services/emailService';
+import { sequelize } from '../config/db';
 
 // Generate JWT Token
 const generateToken = (user: User): string => {
@@ -271,7 +272,7 @@ const resendEmailVerification = async (req: Request, res: Response): Promise<voi
 // POST /auth/signup - Step 3: Register user (requires email verification)
 const signup = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { name, email, phone, password, role }: ICreateUser = req.body;
+    const { name, email, phone, password, role, workshop_id }: ICreateUser & { workshop_id?: string } = req.body;
 
     // Validate required fields
     if (!name || !email || !phone || !password) {
@@ -327,31 +328,90 @@ const signup = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Create user with is_verified = true (since email is already verified)
-    const user = await User.create({
-      name,
-      email,
-      phone,
-      password,
-      role: role || UserRole.USER,
-      is_verified: true // User is verified since email was verified
-    });
+    // For mechanics, validate workshop selection
+    if ((role === UserRole.MECHANIC_EMPLOYEE || role === UserRole.MECHANIC_OWNER) && !workshop_id) {
+      res.status(400).json({
+        success: false,
+        message: 'Workshop selection is required for mechanics.'
+      });
+      return;
+    }
 
-    // Clean up verification OTP (no longer needed)
-    await Otp.destroy({
-      where: {
-        email,
-        purpose: 'EMAIL_VERIFICATION'
+    // If workshop_id is provided, verify the workshop exists
+    if (workshop_id) {
+      const workshop = await Workshop.findByPk(workshop_id);
+      if (!workshop) {
+        res.status(400).json({
+          success: false,
+          message: 'Selected workshop not found.'
+        });
+        return;
       }
-    });
+    }
 
-    // Generate JWT token immediately
-    const token = generateToken(user);
+    // Use database transaction to ensure atomicity
+    const transaction = await sequelize.transaction();
 
-    res.status(201).json({
-      success: true,
-      message: 'User registered successfully.',
-      data: {
+    try {
+      // Create user with is_verified = true (since email is already verified)
+      const user = await User.create({
+        name,
+        email,
+        phone,
+        password,
+        role: role || UserRole.USER,
+        is_verified: true // User is verified since email was verified
+      }, { transaction });
+
+      // If user is a mechanic and workshop is selected, create worker record
+      let workerData = null;
+      if ((role === UserRole.MECHANIC_EMPLOYEE || role === UserRole.MECHANIC_OWNER) && workshop_id) {
+        try {
+          const worker = await Worker.create({
+            workshop_id,
+            user_id: user.id,
+            name: user.name,
+            phone: user.phone,
+            email: user.email,
+            specialization: [], // Empty array, can be updated later
+            is_available: true,
+            current_location_latitude: null,
+            current_location_longitude: null
+          }, { transaction });
+
+          // Include worker data in response
+          workerData = {
+            id: worker.id,
+            workshop_id: worker.workshop_id,
+            specialization: worker.specialization,
+            is_available: worker.is_available
+          };
+
+          console.log(`✅ Worker created successfully: ${worker.id} for user ${user.id} in workshop ${workshop_id}`);
+        } catch (workerError) {
+          console.error('❌ Failed to create worker record:', workerError);
+          throw new Error('Failed to create worker profile');
+        }
+      }
+
+      // Clean up verification OTP (no longer needed)
+      await Otp.destroy({
+        where: {
+          email,
+          purpose: 'EMAIL_VERIFICATION'
+        },
+        transaction
+      });
+
+      // Commit transaction
+      await transaction.commit();
+
+      // Generate JWT token immediately
+      const token = generateToken(user);
+
+      console.log(`✅ User registered successfully: ${user.email} with role ${user.role}${workshop_id ? ` in workshop ${workshop_id}` : ''}`);
+
+      const responseData: any = {
         token,
         user: {
           id: user.id,
@@ -361,8 +421,24 @@ const signup = async (req: Request, res: Response): Promise<void> => {
           role: user.role,
           is_verified: user.is_verified
         }
+      };
+
+      // Include worker data if user is a mechanic
+      if (workerData) {
+        responseData.worker = workerData;
       }
-    });
+
+      res.status(201).json({
+        success: true,
+        message: 'User registered successfully.',
+        data: responseData
+      });
+
+    } catch (transactionError) {
+      // Rollback transaction on error
+      await transaction.rollback();
+      throw transactionError;
+    }
 
   } catch (error) {
     console.error('Signup error:', error);

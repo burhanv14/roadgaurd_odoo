@@ -20,6 +20,7 @@ import { TokenManager, AuthStorage } from "../lib/token.utils";
 const initialState: AuthState = {
   user: null,
   token: null,
+  worker: null,
   isAuthenticated: false,
   isLoading: false,
   error: null,
@@ -45,6 +46,7 @@ export const useAuthStore = create<AuthStore>()(
           set({
             user: authResponse.user,
             token: authResponse.token,
+            worker: authResponse.worker || null,
             expiresAt: null, // Backend doesn't provide expiresAt
             isAuthenticated: true,
             isLoading: false,
@@ -59,6 +61,7 @@ export const useAuthStore = create<AuthStore>()(
           set({
             user: null,
             token: null,
+            worker: null,
             expiresAt: null,
             isAuthenticated: false,
             isLoading: false,
@@ -77,6 +80,7 @@ export const useAuthStore = create<AuthStore>()(
           set({
             user: authResponse.user,
             token: authResponse.token,
+            worker: authResponse.worker || null,
             expiresAt: null, // Backend doesn't provide expiresAt
             isAuthenticated: true,
             isLoading: false,
@@ -91,6 +95,7 @@ export const useAuthStore = create<AuthStore>()(
           set({
             user: null,
             token: null,
+            worker: null,
             expiresAt: null,
             isAuthenticated: false,
             isLoading: false,
@@ -153,7 +158,7 @@ export const useAuthStore = create<AuthStore>()(
       checkAuthStatus: () => {
         try {
           const token = TokenManager.getToken();
-          const userData = AuthStorage.getUserData();
+          const userData = AuthStorage.getUserData() as User | null;
 
           if (token && !TokenManager.isTokenExpired(token)) {
             // Token is valid
