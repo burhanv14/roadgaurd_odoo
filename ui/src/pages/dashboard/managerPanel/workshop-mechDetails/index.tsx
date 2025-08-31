@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams,useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -275,11 +275,6 @@ const WorkshopMechDetailsPage: React.FC = () => {
               <div className="text-center py-8">
                 <Wrench className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
                 <p className="text-muted-foreground">No mechanics assigned to this workshop</p>
-                <Button asChild className="mt-4" size="sm">
-                  <Link to="/managerShopPanel/assignMechanics">
-                    Assign Mechanics
-                  </Link>
-                </Button>
               </div>
             ) : (
               <div className="space-y-4 max-h-96 overflow-y-auto">

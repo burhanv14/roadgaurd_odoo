@@ -58,7 +58,7 @@ class CloudinaryService {
       return new Promise((resolve, reject) => {
         cloudinary.uploader.upload_stream(
           defaultOptions,
-          (error, result) => {
+          (error: any, result: any) => {
             if (error) {
               console.error('Cloudinary upload error:', error);
               reject(error);

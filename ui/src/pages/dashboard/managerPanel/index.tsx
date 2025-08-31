@@ -85,6 +85,11 @@ const ManagerShopPanel: React.FC = () => {
                 Create Workshop
               </Link>
             </Button>
+            <Button asChild variant="outline" size="lg">
+              <Link to="/managerShopPanel/assignMechanics">
+                Assign Mechanics
+              </Link>
+            </Button>
           </div>
         </div>
       </div>

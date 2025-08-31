@@ -209,6 +209,24 @@ export class ServiceRequestService {
       throw new Error(error.message || 'Failed to assign workshop');
     }
   }
+
+  /**
+   * Assign worker to service request
+   */
+  async assignWorker(id: string, workerId?: string): Promise<ServiceRequestResponse> {
+    try {
+      const response = await api.patch<ServiceRequest>(`/service-requests/${id}/assign-worker`, {
+        assigned_worker_id: workerId
+      });
+      return {
+        success: response.success,
+        message: response.message || 'Worker assignment updated successfully',
+        data: response.data
+      };
+    } catch (error: any) {
+      throw new Error(error.message || 'Failed to assign worker');
+    }
+  }
 }
 
 // Export singleton instance

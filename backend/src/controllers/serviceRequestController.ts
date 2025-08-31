@@ -5,6 +5,7 @@ import Workshop from '../models/Workshop';
 import Worker from '../models/Worker';
 import User from '../models/User';
 import Quotation from '../models/Quotation';
+import Service from '../models/Service';
 import { 
   ICreateServiceRequest, 
   IUpdateServiceRequest, 
@@ -465,6 +466,168 @@ class ServiceRequestController {
       res.status(500).json({
         success: false,
         message: 'Failed to assign workshop',
+        error: error.message
+      } as IApiResponse);
+    }
+  }
+
+  // Assign worker to service request
+  static async assignWorker(req: IAuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { assigned_worker_id } = req.body;
+      const userId = req.user?.userId;
+      const userRole = req.user?.role;
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        } as IApiResponse);
+        return;
+      }
+
+      const serviceRequest = await ServiceRequest.findByPk(id);
+      if (!serviceRequest) {
+        res.status(404).json({
+          success: false,
+          message: 'Service request not found'
+        } as IApiResponse);
+        return;
+      }
+
+      // Check if service request has a workshop assigned
+      if (!serviceRequest.workshop_id) {
+        res.status(400).json({
+          success: false,
+          message: 'Service request must be assigned to a workshop first'
+        } as IApiResponse);
+        return;
+      }
+
+      // Check if user has access to this workshop
+      const hasAccess = (
+        userRole === UserRole.ADMIN ||
+        await this.userOwnsWorkshop(userId, serviceRequest.workshop_id)
+      );
+
+      if (!hasAccess) {
+        res.status(403).json({
+          success: false,
+          message: 'Access denied'
+        } as IApiResponse);
+        return;
+      }
+
+      // If worker is being assigned, verify they belong to the workshop
+      if (assigned_worker_id) {
+        const worker = await Worker.findOne({
+          where: {
+            id: assigned_worker_id,
+            workshop_id: serviceRequest.workshop_id
+          }
+        });
+
+        if (!worker) {
+          res.status(404).json({
+            success: false,
+            message: 'Worker not found in this workshop'
+          } as IApiResponse);
+          return;
+        }
+      }
+
+      // Update service request with assigned worker
+      await serviceRequest.update({
+        assigned_worker_id: assigned_worker_id || null
+      });
+
+      // Fetch updated service request
+      const updatedServiceRequest = await ServiceRequest.findByPk(id, {
+        include: [
+          { model: User, as: 'user', attributes: ['id', 'name', 'email', 'phone'] },
+          { model: Workshop, as: 'workshop', attributes: ['id', 'name', 'address'] },
+          { model: Worker, as: 'assignedWorker', attributes: ['id', 'name', 'phone', 'specialization'] }
+        ]
+      });
+
+      res.json({
+        success: true,
+        message: assigned_worker_id ? 'Worker assigned successfully' : 'Worker unassigned successfully',
+        data: updatedServiceRequest
+      } as IApiResponse);
+    } catch (error: any) {
+      console.error('Error assigning worker:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to assign worker',
+        error: error.message
+      } as IApiResponse);
+    }
+  }
+
+  // Get all services by workshop ID
+  static async getServicesByWorkshopId(req: IAuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { id: workshopId } = req.params;
+      const userId = req.user?.userId;
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        } as IApiResponse);
+        return;
+      }
+
+      if (!workshopId) {
+        res.status(400).json({
+          success: false,
+          message: 'Workshop ID is required'
+        } as IApiResponse);
+        return;
+      }
+
+      // Verify workshop exists
+      const workshop = await Workshop.findByPk(workshopId);
+      if (!workshop) {
+        res.status(404).json({
+          success: false,
+          message: 'Workshop not found'
+        } as IApiResponse);
+        return;
+      }
+
+      // Get all services for the workshop
+      const services = await Service.findAll({
+        where: {
+          workshop_id: workshopId
+        },
+        include: [
+          {
+            model: Workshop,
+            as: 'workshop',
+            attributes: ['id', 'name', 'address', 'phone', 'email']
+          }
+        ],
+        order: [['createdAt', 'DESC']]
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Services retrieved successfully',
+        data: services,
+        meta: {
+          total: services.length,
+          workshop_id: workshopId,
+          workshop_name: workshop.name
+        }
+      } as IApiResponse);
+    } catch (error: any) {
+      console.error('Error fetching services by workshop ID:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch services',
         error: error.message
       } as IApiResponse);
     }
