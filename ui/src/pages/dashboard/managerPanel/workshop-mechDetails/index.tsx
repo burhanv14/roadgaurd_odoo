@@ -348,11 +348,14 @@ const WorkshopMechDetailsPage: React.FC = () => {
                     >
                       <div className="flex items-center justify-between mb-2">
                         <h4 className="font-semibold">{service.name}</h4>
-                        <Badge variant="outline">${service.price}</Badge>
+                        <Badge variant="outline">{service.vehicle_model}</Badge>
                       </div>
                       <p className="text-sm text-muted-foreground">
                         {service.description}
                       </p>
+                      <div className="text-xs text-muted-foreground mt-2">
+                        <span className="font-medium">Vehicle:</span> {service.vehicle_model} - {service.license_plate}
+                      </div>
                     </div>
                   ))}
                 </div>

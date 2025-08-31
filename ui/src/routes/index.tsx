@@ -20,6 +20,7 @@ const NotFoundPage = lazy(() => import("@/pages/NotFoundPage"));
 const UnauthorizedPage = lazy(() => import("@/pages/UnauthorizedPage"));
 const WorkshopsPage = lazy(() => import("@/pages/dashboard/workshops/index"));
 const ShopDetailsPage = lazy(() => import("@/pages/dashboard/workshops/shopDetails/index"));
+const BookServicePage = lazy(() => import("@/pages/dashboard/workshops/shopDetails/bookService/index"));
 const ManagerShopPanelPage = lazy(() => import("@/pages/dashboard/managerPanel/index"));
 const CreateWorkshopPage = lazy(() => import("@/pages/dashboard/managerPanel/createWorkshop/index"));
 const AssignMechanicsPage = lazy(() => import("@/pages/dashboard/managerPanel/assignMechanics/index"));
@@ -88,6 +89,14 @@ export const router = createBrowserRouter([
         element: (
           <ClientRoute fallbackPath="/unauthorized">
             <ShopDetailsPage />
+          </ClientRoute>
+        ),
+      },
+      {
+        path: "workshops/shop/:shopId/:user_id",
+        element: (
+          <ClientRoute fallbackPath="/unauthorized">
+            <BookServicePage />
           </ClientRoute>
         ),
       },

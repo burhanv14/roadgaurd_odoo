@@ -80,7 +80,7 @@ class ApiService {
    */
   private getAuthToken(): string | null {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+      return localStorage.getItem('auth_token') || localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
     }
     return null;
   }
@@ -320,7 +320,7 @@ class ApiService {
   setAuthToken(token: string, persistent: boolean = false): void {
     if (typeof window !== 'undefined') {
       if (persistent) {
-        localStorage.setItem('authToken', token);
+        localStorage.setItem('auth_token', token);
       } else {
         sessionStorage.setItem('authToken', token);
       }
@@ -332,6 +332,7 @@ class ApiService {
    */
   clearAuthToken(): void {
     if (typeof window !== 'undefined') {
+      localStorage.removeItem('auth_token');
       localStorage.removeItem('authToken');
       sessionStorage.removeItem('authToken');
     }
@@ -403,3 +404,6 @@ export { translationService } from './translation.service';
 
 // Export workshop service
 export { workshopService } from './workshop.service';
+
+// Export service request service
+export { serviceRequestService } from './serviceRequest.service';

@@ -257,3 +257,4 @@ const ManagerShopPanel: React.FC = () => {
 };
 
 export default ManagerShopPanel;
+

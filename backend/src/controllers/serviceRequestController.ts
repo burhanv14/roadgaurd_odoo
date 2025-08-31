@@ -44,10 +44,35 @@ class ServiceRequestController {
         return;
       }
 
+      // Validate workshop_id if provided
+      if (serviceRequestData.workshop_id) {
+        const workshop = await Workshop.findByPk(serviceRequestData.workshop_id);
+        if (!workshop) {
+          res.status(400).json({
+            success: false,
+            message: 'Invalid workshop ID provided'
+          } as IApiResponse);
+          return;
+        }
+        console.log('Workshop validation passed:', {
+          workshop_id: serviceRequestData.workshop_id,
+          workshop_name: workshop.name
+        });
+      } else {
+        console.log('No workshop_id provided - creating unassigned service request');
+      }
+
+      console.log('Creating service request with data:', {
+        user_id: userId,
+        workshop_id: serviceRequestData.workshop_id || null,
+        name: serviceRequestData.name,
+        service_type: serviceRequestData.service_type
+      });
+
       // Create service request
       const serviceRequest = await ServiceRequest.create({
         user_id: userId,
-        workshop_id: null,
+        workshop_id: serviceRequestData.workshop_id || null,
         name: serviceRequestData.name,
         description: serviceRequestData.description,
         service_type: serviceRequestData.service_type || ServiceRequestType.INSTANT_SERVICE,
@@ -63,6 +88,13 @@ class ServiceRequestController {
         assigned_worker_id: null,
         estimated_completion: null,
         actual_completion: null
+      });
+
+      console.log('Service request created successfully:', {
+        id: serviceRequest.id,
+        workshop_id: serviceRequest.workshop_id,
+        user_id: serviceRequest.user_id,
+        status: serviceRequest.status
       });
 
       // Fetch the created service request with associations

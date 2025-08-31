@@ -14,7 +14,7 @@ import { workshopService } from '@/services/workshop.service';
 export default function ShopDetailsPage() {
   const { shopId } = useParams<{ shopId: string }>();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { workshop, loading, error, refetch } = useWorkshopDetails(shopId || '');
   const [reviewText, setReviewText] = useState('');
   const [reviewRating, setReviewRating] = useState(5);
@@ -341,7 +341,6 @@ export default function ShopDetailsPage() {
                      </div>
                    ))
                  ) : (
-                   // Sample review if none exist
                    <div className="border rounded-lg p-4 bg-muted/20">
                      No reviews.
                    </div>
@@ -357,11 +356,23 @@ export default function ShopDetailsPage() {
           <Card>
             <CardContent className="p-6">
               <div className="space-y-3">
-                <Button className="w-full bg-green-600 hover:bg-green-700 text-white text-lg py-3">
+                <Button 
+                  className="w-full bg-green-600 hover:bg-green-700 text-white text-lg py-3"
+                  onClick={() => {
+                    if (isAuthenticated && user) {
+                      navigate(`/workshops/shop/${shopId}/${user.id}`);
+                    } else {
+                      navigate('/login');
+                    }
+                  }}
+                >
                   Book Service
                 </Button>
                 <p className="text-xs text-muted-foreground text-center">
-                  Contact the workshop to schedule your service
+                  {isAuthenticated ? 
+                    'Schedule a service appointment' : 
+                    'Please log in to book a service'
+                  }
                 </p>
               </div>
             </CardContent>

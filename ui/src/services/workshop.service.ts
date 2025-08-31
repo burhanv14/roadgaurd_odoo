@@ -70,10 +70,15 @@ export interface CreateWorkshopRequest {
 
 export interface WorkshopServiceInterface {
   id: string;
+  workshop_id: string;
   name: string;
   description: string;
-  price: number;
-  workshopId: string;
+  vehicle_model: string;
+  license_plate: string;
+  image_urls: string[];
+  location_address: string;
+  location_latitude: number;
+  location_longitude: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -99,9 +104,15 @@ export interface WorkshopDetails extends Workshop {
 }
 
 export interface CreateServiceRequest {
+  workshop_id: string;
   name: string;
   description: string;
-  price: number;
+  vehicle_model: string;
+  license_plate: string;
+  image_urls?: string[];
+  location_address: string;
+  location_latitude: number;
+  location_longitude: number;
 }
 
 export interface CreateReviewRequest {
