@@ -70,10 +70,15 @@ export interface CreateWorkshopRequest {
 
 export interface WorkshopServiceInterface {
   id: string;
+  workshop_id: string;
   name: string;
   description: string;
-  price: number;
-  workshopId: string;
+  vehicle_model: string;
+  license_plate: string;
+  image_urls: string[];
+  location_address: string;
+  location_latitude: number;
+  location_longitude: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -99,9 +104,15 @@ export interface WorkshopDetails extends Workshop {
 }
 
 export interface CreateServiceRequest {
+  workshop_id: string;
   name: string;
   description: string;
-  price: number;
+  vehicle_model: string;
+  license_plate: string;
+  image_urls?: string[];
+  location_address: string;
+  location_latitude: number;
+  location_longitude: number;
 }
 
 export interface CreateReviewRequest {
@@ -203,12 +214,12 @@ export class WorkshopService {
     const axiosInstance = this.createAxiosInstance();
     
     const response = await axiosInstance.get(`/workshops/owner/${ownerId}`);
-    // The backend returns data.workshops, so we need to restructure it
+    // The backend returns workshops directly under data
     const backendData = response.data;
     return {
       success: backendData.success,
       message: backendData.message,
-      data: backendData.data.workshops
+      data: backendData.data || []
     };
   }
 
@@ -245,16 +256,16 @@ export class WorkshopService {
   /**
    * Get detailed workshop information with services and reviews
    */
-  async getWorkshopDetails(id: string): Promise<{ success: boolean; message: string; data: { workshop: WorkshopDetails } }> {
+  async getWorkshopDetails(id: string): Promise<{ success: boolean; message: string; data: WorkshopDetails }> {
     const axiosInstance = this.createAxiosInstance();
     
     const response = await axiosInstance.get(`/workshops/${id}/details`);
-    // The backend returns data.workshop, so we need to restructure it
+    // The backend returns data directly, not data.workshop
     const backendData = response.data;
     return {
       success: backendData.success,
       message: backendData.message,
-      data: backendData.data.workshop
+      data: backendData.data
     };
   }
 

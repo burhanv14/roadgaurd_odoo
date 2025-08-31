@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { workshopService } from '@/services/workshop.service';
 import type { Workshop } from '@/services/workshop.service';
 import { Link } from 'react-router-dom';
-import { Plus, Users, MapPin, Star, Clock, Edit, Trash2, Eye } from 'lucide-react';
+import { Plus, MapPin, Star, Clock, Trash2, Eye } from 'lucide-react';
 
 const ManagerShopPanel: React.FC = () => {
   const { user } = useAuth();
@@ -24,10 +24,15 @@ const ManagerShopPanel: React.FC = () => {
         setError(null);
         const response = await workshopService.getWorkshopsByOwnerId(user.id.toString());
         
-        if (response.success) {
-          setWorkshops(response.data);
+        console.log('Workshop service response:', response);
+        
+        if (response.success && response.data) {
+          console.log('Setting workshops:', response.data);
+          setWorkshops(response.data || []);
         } else {
+          console.log('Error response:', response.message);
           setError(response.message || 'Failed to fetch workshops');
+          setWorkshops([]);
         }
       } catch (err) {
         console.error('Error fetching workshops:', err);
@@ -92,7 +97,7 @@ const ManagerShopPanel: React.FC = () => {
             <MapPin className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{workshops.length}</div>
+            <div className="text-2xl font-bold">{workshops?.length || 0}</div>
           </CardContent>
         </Card>
         
@@ -115,7 +120,7 @@ const ManagerShopPanel: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-amber-600">
-              {workshops.length > 0 
+              {workshops?.length > 0 
                 ? (workshops.reduce((acc, w) => acc + w.rating, 0) / workshops.length).toFixed(1)
                 : '0.0'
               }
@@ -129,7 +134,7 @@ const ManagerShopPanel: React.FC = () => {
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-semibold text-foreground">Your Workshops</h2>
           <Badge variant="secondary" className="text-sm">
-            {workshops.length} workshop{workshops.length !== 1 ? 's' : ''}
+            {workshops?.length || 0} workshop{(workshops?.length || 0) !== 1 ? 's' : ''}
           </Badge>
         </div>
 
@@ -147,7 +152,7 @@ const ManagerShopPanel: React.FC = () => {
           </Card>
         )}
 
-        {!loading && !error && workshops.length === 0 && (
+        {!loading && !error && (workshops?.length || 0) === 0 && (
           <Card className="border-dashed">
             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
               <MapPin className="h-12 w-12 text-muted-foreground/50 mb-4" />
@@ -167,9 +172,9 @@ const ManagerShopPanel: React.FC = () => {
           </Card>
         )}
 
-        {!loading && !error && workshops.length > 0 && (
+        {!loading && !error && (workshops?.length || 0) > 0 && (
           <div className="grid gap-6">
-            {workshops.map((workshop) => (
+            {workshops?.map((workshop) => (
               <Card key={workshop.id} className="border-muted/50 bg-card shadow-sm">
                 <CardContent className="p-6">
                   <div className="flex flex-col gap-4 lg:flex-row">
@@ -252,3 +257,4 @@ const ManagerShopPanel: React.FC = () => {
 };
 
 export default ManagerShopPanel;
+

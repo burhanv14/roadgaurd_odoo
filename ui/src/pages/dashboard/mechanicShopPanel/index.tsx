@@ -236,3 +236,4 @@ const MechanicShopPanel: React.FC = () => {
 };
 
 export default MechanicShopPanel;
+

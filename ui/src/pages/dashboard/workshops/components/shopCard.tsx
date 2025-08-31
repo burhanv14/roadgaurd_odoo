@@ -22,6 +22,7 @@ type Shop = {
   lat: number;
   lng: number;
   review: Review;
+  distance?: number;
 };
 
 // --- Main ShopCard Component ---
@@ -71,6 +72,11 @@ export function ShopCard({ shop }: { shop: Shop }) {
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <MapPin className="size-4" aria-hidden />
               <span className="truncate">{shop.locationLabel}</span>
+              {shop.distance && (
+                <span className="text-blue-600 font-medium">
+                  • {shop.distance.toFixed(1)}km away
+                </span>
+              )}
             </div>
 
             {/* Review */}

@@ -1,21 +1,20 @@
 import React, { useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, User2, Star, Send, Share2, Facebook, Twitter, Linkedin, Mail } from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft, MapPin, User2, Star, Send } from 'lucide-react';
 import { useWorkshopDetails } from '@/hooks/useWorkshopDetails';
 import { useAuth } from '@/hooks/useAuth';
-import { useAuthStore } from '@/stores/auth.store';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import ShopMap from '../components/shopMap';
 import { Stars } from '../components/stars';
+import { workshopService } from '@/services/workshop.service';
 
 export default function ShopDetailsPage() {
   const { shopId } = useParams<{ shopId: string }>();
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { workshop, loading, error, refetch } = useWorkshopDetails(shopId || '');
   const [reviewText, setReviewText] = useState('');
   const [reviewRating, setReviewRating] = useState(5);
@@ -58,9 +57,6 @@ export default function ShopDetailsPage() {
           <div className="text-sm text-muted-foreground">
             The workshop you're looking for might not exist or has been removed.
           </div>
-          <div className="text-xs text-muted-foreground">
-            Workshop ID: {shopId}
-          </div>
           <div className="flex gap-3">
             <Button onClick={() => refetch()} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
               Retry
@@ -101,81 +97,37 @@ export default function ShopDetailsPage() {
     setReviewSuccess(false);
     
     try {
-      // Get the token from the auth store
-      const token = useAuthStore.getState().token;
-      
-      if (!token) {
-        setReviewError('Authentication token not found. Please log in again.');
+      // Submit review using workshop service
+      if (!shopId) {
+        setReviewError('Workshop ID is missing');
         return;
       }
-      
-      console.log('Submitting review with token:', token.substring(0, 20) + '...');
-      
-      // Submit review to backend
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}/workshops/${shopId}/reviews`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          rating: reviewRating,
-          comment: reviewText
-        })
+
+      await workshopService.addWorkshopReview(shopId, {
+        rating: reviewRating,
+        comment: reviewText
       });
 
-      if (response.ok) {
-        setReviewText('');
-        setReviewSuccess(true);
-        // Refresh workshop data to show new review
-        await refetch();
-        
-        // Clear success message after 3 seconds
-        setTimeout(() => setReviewSuccess(false), 3000);
-      } else if (response.status === 401) {
+      setReviewText('');
+      setReviewSuccess(true);
+      // Refresh workshop data to show new review
+      await refetch();
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setReviewSuccess(false), 3000);
+    } catch (error: any) {
+      if (error.response?.status === 401) {
         setReviewError('Authentication failed. Please log in again.');
-        // Optionally redirect to login
-        // navigate('/login');
-      } else if (response.status === 403) {
+      } else if (error.response?.status === 403) {
         setReviewError('Access denied. You may not have permission to submit reviews.');
+      } else if (error.response?.status === 409) {
+        setReviewError('You have already reviewed this workshop.');
       } else {
-        const errorData = await response.json();
-        setReviewError(errorData.message || 'Failed to submit review');
-        console.error('Failed to submit review:', errorData.message);
+        setReviewError(error.response?.data?.message || error.message || 'Failed to submit review');
       }
-    } catch (error) {
-      setReviewError('Network error. Please try again.');
       console.error('Failed to submit review:', error);
     } finally {
       setSubmittingReview(false);
-    }
-  };
-
-  const handleShare = (platform: string) => {
-    try {
-      const url = window.location.href;
-      const workshopName = workshop.name || 'Workshop';
-      const workshopDesc = workshop.description || 'Check out this automotive workshop';
-      const text = `Check out ${workshopName} - ${workshopDesc}`;
-      
-      switch (platform) {
-        case 'facebook':
-          window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`);
-          break;
-        case 'twitter':
-          window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`);
-          break;
-        case 'linkedin':
-          window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`);
-          break;
-        case 'email':
-          window.open(`mailto:?subject=${encodeURIComponent(`Check out ${workshopName}`)}&body=${encodeURIComponent(`${text}\n\n${url}`)}`);
-          break;
-        default:
-          console.warn(`Unknown share platform: ${platform}`);
-      }
-    } catch (error) {
-      console.error('Failed to share:', error);
     }
   };
 
@@ -205,9 +157,6 @@ export default function ShopDetailsPage() {
             )}
           </div>
         </div>
-                 <Button variant="outline" size="sm">
-           <Link to="/login">Login</Link>
-         </Button>
       </header>
 
       <div className="grid gap-8 lg:grid-cols-3">
@@ -230,6 +179,7 @@ export default function ShopDetailsPage() {
           {/* Description */}
           <Card>
             <CardContent className="p-6">
+              <h2 className="text-xl font-semibold mb-4">Services</h2>
               <div className="space-y-3">
                 <p className="text-muted-foreground leading-relaxed">
                   {workshop.description || 'No description available for this workshop.'}
@@ -242,8 +192,6 @@ export default function ShopDetailsPage() {
               </div>
             </CardContent>
           </Card>
-
-          
 
           {/* Customer Reviews */}
           <Card>
@@ -393,13 +341,8 @@ export default function ShopDetailsPage() {
                      </div>
                    ))
                  ) : (
-                   // Sample review if none exist
                    <div className="border rounded-lg p-4 bg-muted/20">
-                     <div className="flex items-center justify-between mb-2">
-                       <span className="font-medium">Mitchell Admin</span>
-                       <Stars rating={5} />
-                     </div>
-                     <p className="text-sm text-muted-foreground">very good service</p>
+                     No reviews.
                    </div>
                  )}
                </div>
@@ -413,11 +356,23 @@ export default function ShopDetailsPage() {
           <Card>
             <CardContent className="p-6">
               <div className="space-y-3">
-                <Button className="w-full bg-green-600 hover:bg-green-700 text-white text-lg py-3">
+                <Button 
+                  className="w-full bg-green-600 hover:bg-green-700 text-white text-lg py-3"
+                  onClick={() => {
+                    if (isAuthenticated && user) {
+                      navigate(`/workshops/shop/${shopId}/${user.id}`);
+                    } else {
+                      navigate('/login');
+                    }
+                  }}
+                >
                   Book Service
                 </Button>
                 <p className="text-xs text-muted-foreground text-center">
-                  Contact the workshop to schedule your service
+                  {isAuthenticated ? 
+                    'Schedule a service appointment' : 
+                    'Please log in to book a service'
+                  }
                 </p>
               </div>
             </CardContent>
@@ -468,54 +423,8 @@ export default function ShopDetailsPage() {
                 <div className="text-sm text-muted-foreground">
                   {workshop.owner?.phone || 'Phone not available'}
                 </div>
-                                 <div className="text-sm text-muted-foreground">
-                   {workshop.owner?.email || 'Email not available'}
-                 </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Share Options */}
-          <Card>
-            <CardContent className="p-6">
-              <h3 className="font-semibold mb-4">Share</h3>
-              <div className="space-y-3">
-                <p className="text-xs text-muted-foreground">
-                  Share this workshop with others
-                </p>
-                <div className="flex gap-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleShare('facebook')}
-                    className="flex-1"
-                  >
-                    <Facebook className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleShare('twitter')}
-                    className="flex-1"
-                  >
-                    <Twitter className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleShare('linkedin')}
-                    className="flex-1"
-                  >
-                    <Linkedin className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleShare('email')}
-                    className="flex-1"
-                  >
-                    <Mail className="h-4 w-4" />
-                  </Button>
+                <div className="text-sm text-muted-foreground">
+                  {workshop.owner?.email || 'Email not available'}
                 </div>
               </div>
             </CardContent>

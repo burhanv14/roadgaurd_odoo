@@ -129,14 +129,27 @@ export interface IService {
   workshop_id: string;
   name: string;
   description: string;
+  vehicle_model: string;
+  license_plate: string;
+  image_urls: string[];
+  location_address: string;
+  location_latitude: number;
+  location_longitude: number;
   createdAt: Date;
   updatedAt: Date;
 }
 
 // Service creation payload
 export interface ICreateService {
+  workshop_id: string;
   name: string;
   description: string;
+  vehicle_model: string;
+  license_plate: string;
+  image_urls?: string[];
+  location_address: string;
+  location_latitude: number;
+  location_longitude: number;
 }
 
 // Service Request Status Enum
@@ -200,6 +213,8 @@ export interface ICreateServiceRequest {
   scheduled_end_time?: Date;
   issue_description: string;
   image_urls?: string[];
+  workshop_id?: string;
+  assigned_worker_id?: string;
 }
 
 // Service Request update payload

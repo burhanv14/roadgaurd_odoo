@@ -169,13 +169,23 @@ const addWorkshopService = async (req: Request, res: Response): Promise<void> =>
   try {
     const user = (req as any).user;
     const { id } = req.params;
-    const { name, description }: ICreateService = req.body;
+    const { 
+      name, 
+      description, 
+      vehicle_model, 
+      license_plate, 
+      image_urls = [],
+      location_address,
+      location_latitude,
+      location_longitude
+    }: ICreateService = req.body;
 
     // Validate required fields
-    if (!name || !description) {
+    if (!name || !description || !vehicle_model || !license_plate || !location_address || 
+        location_latitude === undefined || location_longitude === undefined) {
       res.status(400).json({
         success: false,
-        message: 'Service name and description are required.'
+        message: 'Service name, description, vehicle model, license plate, and location are required.'
       });
       return;
     }
@@ -203,7 +213,13 @@ const addWorkshopService = async (req: Request, res: Response): Promise<void> =>
     const service = await Service.create({
       workshop_id: id,
       name,
-      description
+      description,
+      vehicle_model,
+      license_plate,
+      image_urls,
+      location_address,
+      location_latitude,
+      location_longitude
     });
 
     res.status(201).json({

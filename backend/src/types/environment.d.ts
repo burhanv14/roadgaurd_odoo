@@ -18,5 +18,9 @@ declare namespace NodeJS {
     EMAIL_PASS: string;
     EMAIL_FROM: string;
     EMAIL_SECURE: string;
+    // Cloudinary configuration
+    CLOUDINARY_CLOUD_NAME: string;
+    CLOUDINARY_API_KEY: string;
+    CLOUDINARY_API_SECRET: string;
   }
 }
