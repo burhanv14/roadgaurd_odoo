@@ -192,11 +192,13 @@ const CreateWorkshopForm: React.FC<CreateWorkshopFormProps> = ({ onSuccess }) =>
       } else {
         setSubmitError(response.message || 'Failed to create workshop');
       }
-    } catch (error: unknown) {
-      console.error('Create workshop error:', error);
+    } catch (err) {
+      console.error('Create workshop error:', err);
+      // Normalize error to access common fields safely
+      const errorAny = err as any;
       setSubmitError(
-        error.response?.data?.message || 
-        error.message || 
+        errorAny?.response?.data?.message ||
+        errorAny?.message ||
         'An error occurred while creating the workshop'
       );
     } finally {

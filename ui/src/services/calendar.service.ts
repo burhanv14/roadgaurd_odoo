@@ -310,6 +310,8 @@ class CalendarService {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // @ts-ignore - reserved for future Google Calendar integration
   private async convertGoogleEventsToCalendarEvents(googleEvents: GoogleEvent[]): Promise<CalendarEvent[]> {
     return googleEvents.map(event => ({
       id: event.id,
@@ -477,6 +479,7 @@ class CalendarService {
   }
 
   // Fallback mock data for development/demo
+  // @ts-ignore - mock data generator used for development/demo
   private getMockCalendarData(): WorkerCalendarData {
     const today = new Date();
     console.log('Generating mock data for date:', today.toString());

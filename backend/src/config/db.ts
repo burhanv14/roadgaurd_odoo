@@ -11,17 +11,25 @@ const sequelize = new Sequelize(
     host: process.env['DB_HOST']!,
     port: parseInt(process.env['DB_PORT']!, 10),
     dialect: 'postgres',
-    logging: process.env['NODE_ENV'] === 'development' ? console.log : false,
+    logging: process.env['NODE_ENV'] === 'development' ? false : false, // Disable logging to reduce overhead
     pool: {
-      max: 10,
-      min: 0,
-      acquire: 30000,
-      idle: 10000
+      max: 20, // Increase max connections
+      min: 5,  // Maintain minimum connections
+      acquire: 60000, // Increase acquire timeout
+      idle: 10000,
+      evict: 1000 // Add connection eviction
     },
     define: {
       timestamps: true,
       underscored: false,
       freezeTableName: true
+    },
+    // Add query optimization
+    benchmark: process.env['NODE_ENV'] === 'development',
+    // Enable connection retry
+    retry: {
+      match: [/SequelizeConnectionError/],
+      max: 3
     }
   }
 );

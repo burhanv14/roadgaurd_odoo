@@ -50,8 +50,9 @@ const WorkshopMechDetailsPage: React.FC = () => {
           const detailsResponse = await workshopService.getWorkshopDetails(workshopId);
           
           if (detailsResponse.success) {
-            // Backend returns data wrapped in 'workshop' object
-            setWorkshop(detailsResponse.data.workshop || detailsResponse.data);
+            // Backend sometimes wraps payload in a 'workshop' key; coerce to any to safely read both shapes
+            const dd: any = detailsResponse.data;
+            setWorkshop(dd.workshop || dd);
           } else {
             // Fallback to basic workshop info if detailed info fails
             // Backend returns data wrapped in 'workshop' object for getWorkshopById too

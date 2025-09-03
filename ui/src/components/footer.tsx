@@ -1,4 +1,4 @@
-import { FaFacebook, FaInstagram, FaLinkedin, FaYoutube, FaWhatsapp } from "react-icons/fa";
+// Social icons were removed to avoid unused imports; add them back where needed
 import { Trans } from '@/components/Trans';
 import logo from "../assets/logo_odoo_2.svg";
 

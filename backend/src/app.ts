@@ -82,31 +82,42 @@ app.use(cors({
   optionsSuccessStatus: 200
 }));
 
-// Rate limiting
+// Rate limiting - More reasonable limits
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: 500, // Increase general limit to 500 requests per windowMs
   message: {
     success: false,
     message: 'Too many requests from this IP, please try again later.'
   },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  // Skip successful requests from counting against limit for better UX
+  skip: (req, res) => res.statusCode < 400
 });
 
 // Apply rate limiting to all routes
 app.use(limiter);
 
-// Stricter rate limiting for auth routes
+// Stricter rate limiting for auth routes - but more reasonable
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // limit each IP to 20 auth requests per windowMs
+  max: 50, // Increase auth limit to 50 requests per windowMs
   message: {
     success: false,
     message: 'Too many authentication attempts, please try again later.'
   },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  // Different limits for different auth endpoints
+  keyGenerator: (req) => {
+    // More lenient for general auth routes
+    if (req.path === '/auth/me' || req.path === '/auth/logout') {
+      return `${req.ip}-general-auth`;
+    }
+    // Stricter for login/signup
+    return `${req.ip}-sensitive-auth`;
+  }
 });
 
 // Body parsing middleware

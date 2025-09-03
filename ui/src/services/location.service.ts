@@ -1,4 +1,4 @@
-import type { Coordinates, LocationData } from '../types/location';
+import type { Coordinates } from '../types/location';
 
 /**
  * Location service for external location-related API calls
@@ -133,7 +133,8 @@ class LocationService {
   async searchNearby(
     coordinates: Coordinates,
     query: string,
-    radius: number = 1000
+    // radius intentionally unused in places where Overpass km conversion happens; keep param for API compatibility
+    _radius: number = 1000
   ): Promise<Array<{
     name: string;
     address: string;
@@ -143,11 +144,11 @@ class LocationService {
     types: string[];
   }>> {
     try {
-      console.log('Searching for:', query, 'near:', coordinates, 'within:', radius, 'meters');
+      console.log('Searching for:', query, 'near:', coordinates, 'within:', _radius, 'meters');
       
       // Using OpenStreetMap Overpass API for places search
       const { latitude, longitude } = coordinates;
-      const radiusKm = radius / 1000;
+      const radiusKm = _radius / 1000;
       
       const overpassQuery = `
         [out:json][timeout:25];
@@ -199,10 +200,10 @@ class LocationService {
         .sort((a: any, b: any) => a.distance - b.distance)
         .slice(0, 10); // Limit to 10 results
 
-      return places.length > 0 ? places : this.getMockPlaces(coordinates, query, radius);
+  return places.length > 0 ? places : this.getMockPlaces(coordinates, query, _radius);
     } catch (error) {
       console.error('Places search failed:', error);
-      return this.getMockPlaces(coordinates, query, radius);
+  return this.getMockPlaces(coordinates, query, _radius);
     }
   }
 
@@ -264,7 +265,7 @@ class LocationService {
   private getMockPlaces(
     coordinates: Coordinates,
     query: string,
-    radius: number
+    _radius: number
   ): Array<{
     name: string;
     address: string;

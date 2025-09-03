@@ -70,34 +70,78 @@ const requestEmailVerification = async (req: Request, res: Response): Promise<vo
       return;
     }
 
-    // Check if user already exists
-    const existingUser = await User.findOne({
-      where: { email }
-    });
-
-    if (existingUser) {
-      res.status(409).json({
-        success: false,
-        message: 'User with this email already exists.'
+    // OPTIMIZATION: Combined query to check existing user and clean up OTPs in one transaction
+    const transaction = await sequelize.transaction();
+    
+    try {
+      // Check if user already exists
+      const existingUser = await User.findOne({
+        where: { email },
+        attributes: ['id'], // Only fetch id to minimize data transfer
+        transaction
       });
-      return;
-    }
 
-    // Delete any existing verification OTPs for this email
-    await Otp.destroy({
-      where: {
-        email,
-        purpose: 'EMAIL_VERIFICATION',
-        is_used: false
+      if (existingUser) {
+        await transaction.rollback();
+        res.status(409).json({
+          success: false,
+          message: 'User with this email already exists.'
+        });
+        return;
       }
-    });
 
-    // Generate OTP
-    const otpCode = Otp.generateOtpCode();
-    const expiresAt = Otp.getExpiryTime(parseInt(process.env['OTP_EXPIRY_MINUTES'] || '5', 10));
+      // Delete any existing verification OTPs for this email (cleanup)
+      await Otp.destroy({
+        where: {
+          email,
+          purpose: 'EMAIL_VERIFICATION',
+          is_used: false
+        },
+        transaction
+      });
 
-    // Store OTP in database (without user_id since user doesn't exist yet)
-    await Otp.create({
+      // Generate OTP
+      const otpCode = Otp.generateOtpCode();
+      const expiresAt = Otp.getExpiryTime(parseInt(process.env['OTP_EXPIRY_MINUTES'] || '5', 10));
+
+      // Store OTP in database (without user_id since user doesn't exist yet)
+      await Otp.create({
+        user_id: null, // No user yet
+        email,
+        otp_code: otpCode,
+        purpose: 'EMAIL_VERIFICATION',
+        expires_at: expiresAt,
+        is_used: false
+      }, { transaction });
+
+      // Commit transaction
+      await transaction.commit();
+
+      // Send OTP via email (async, don't wait for it)
+      const expiryMinutes = parseInt(process.env['OTP_EXPIRY_MINUTES'] || '5', 10);
+      sendOtpEmail(email, name, otpCode, expiryMinutes).then(emailSent => {
+        if (emailSent) {
+          console.log(`📧 Email verification OTP sent to ${email}`);
+        } else {
+          console.error(`❌ Failed to send email verification OTP to ${email}`);
+        }
+      }).catch(err => {
+        console.error('Email sending error:', err);
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Email verification OTP sent successfully. Please check your email and verify your email address.',
+        data: {
+          email,
+          name
+        }
+      });
+
+    } catch (transactionError) {
+      await transaction.rollback();
+      throw transactionError;
+    }
       user_id: null, // No user yet
       email,
       otp_code: otpCode,
@@ -580,14 +624,15 @@ const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Find user by email or phone
+    // OPTIMIZATION: Single query to find user by email or phone with only necessary fields
     const user = await User.findOne({
       where: {
         [Op.or]: [
           { email: identifier },
           { phone: identifier }
         ]
-      }
+      },
+      attributes: ['id', 'name', 'email', 'phone', 'password', 'role', 'is_verified'] // Only fetch necessary fields
     });
 
     if (!user) {

@@ -33,6 +33,37 @@ class Otp extends Model<IOtp, OtpCreationAttributes> implements IOtp {
     const now = new Date();
     return new Date(now.getTime() + minutes * 60000);
   }
+
+  // Static method to clean up expired OTPs (performance optimization)
+  public static async cleanupExpired(): Promise<number> {
+    const result = await Otp.destroy({
+      where: {
+        expires_at: {
+          [require('sequelize').Op.lt]: new Date()
+        }
+      }
+    });
+    return result;
+  }
+
+  // Static method to find valid OTP with single query
+  public static async findValidOtp(email: string, otpCode: string, purpose: string, userId?: string): Promise<Otp | null> {
+    const whereClause: any = {
+      email,
+      otp_code: otpCode,
+      purpose,
+      is_used: false,
+      expires_at: {
+        [require('sequelize').Op.gt]: new Date()
+      }
+    };
+
+    if (userId) {
+      whereClause.user_id = userId;
+    }
+
+    return await Otp.findOne({ where: whereClause });
+  }
 }
 
 Otp.init({

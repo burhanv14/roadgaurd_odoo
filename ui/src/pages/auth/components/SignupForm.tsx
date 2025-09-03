@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Select } from "@/components/ui/select";
 import { UserRole } from "@/types/auth";
