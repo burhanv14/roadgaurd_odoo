@@ -142,30 +142,6 @@ const requestEmailVerification = async (req: Request, res: Response): Promise<vo
       await transaction.rollback();
       throw transactionError;
     }
-      user_id: null, // No user yet
-      email,
-      otp_code: otpCode,
-      purpose: 'EMAIL_VERIFICATION',
-      expires_at: expiresAt,
-      is_used: false
-    });
-
-    // Send OTP via email
-    const expiryMinutes = parseInt(process.env['OTP_EXPIRY_MINUTES'] || '5', 10);
-    const emailSent = await sendOtpEmail(email, name, otpCode, expiryMinutes);
-    
-    if (emailSent) {
-      console.log(`📧 Email verification OTP sent to ${email}`);
-    }
-
-    res.status(200).json({
-      success: true,
-      message: 'Email verification OTP sent successfully. Please check your email and verify your email address.',
-      data: {
-        email,
-        name
-      }
-    });
 
   } catch (error) {
     console.error('Request email verification error:', error);
