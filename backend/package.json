@@ -15,7 +15,8 @@
     "test:auth": "node test-auth.js",
     "db:sync": "ts-node src/scripts/syncDatabase.ts",
     "db:sync:build": "npm run build && node dist/scripts/syncDatabase.js",
-    "test:backend": "node test-backend.js"
+    "test:backend": "node test-backend.js",
+    "postinstall": "npm run build"
   },
   "keywords": [
     "roadguard",

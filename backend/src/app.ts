@@ -72,6 +72,12 @@ app.use(cors({
       return callback(null, true);
     }
 
+    // Allow Render deployed apps (any subdomain of onrender.com)
+    if (origin.endsWith('.onrender.com')) {
+      console.log('Render domain - allowing request');
+      return callback(null, true);
+    }
+
     // Otherwise deny
     console.log('Origin not allowed:', origin);
     return callback(new Error('Not allowed by CORS'));
